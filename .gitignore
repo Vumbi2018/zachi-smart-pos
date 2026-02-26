@@ -1,0 +1,13 @@
+node_modules/
+.env
+*.log
+logs/
+uploads/
+server_startup_log.txt
+service_log.txt
+verify_payments.js
+extract_colors.ps1
+public/extract_colors.html
+scripts/debug-*.js
+IMG-20260213-WA0079.jpg
+Zachi\ Flyre.jpg

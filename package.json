@@ -1,0 +1,32 @@
+{
+  "name": "zachi-smart-pos",
+  "version": "1.0.0",
+  "description": "Zachi Smart-POS - Point of Sale & Management System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "migrate": "node db/migrate.js",
+    "seed": "node db/migrate.js seed",
+    "fresh": "node db/migrate.js fresh",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.13.5",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "csv-parser": "^3.2.0",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "nodemailer": "^8.0.1",
+    "pg": "^8.18.0",
+    "puppeteer": "^24.37.4"
+  }
+}

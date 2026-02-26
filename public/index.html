@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zachi Smart-POS | Enterprise Retail Management</title>
+  <meta name="description"
+    content="Zachi Computer Centre - Smart POS and Management System for sales, inventory, and service tracking">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/styles.css?v=2.2">
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1B3A5C">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ZachiPOS">
+  <link rel="apple-touch-icon" href="/logo.jpg">
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231B3A5C'/><text x='50' y='68' font-family='Inter,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'>Z</text></svg>">
+</head>
+
+<body>
+
+  <!-- ============ LOGIN SCREEN ============ -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <img src="/logo.jpg" alt="Zachi Logo" class="login-logo-img">
+        <h1>Zachi Smart-POS</h1>
+        <p class="login-subtitle">Enterprise Retail Management</p>
+      </div>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" placeholder="Enter username" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="Enter password" required
+            autocomplete="current-password">
+          <div class="flex justify-end mt-1">
+            <a href="#" onclick="alert('Please contact your administrator to reset your password.')"
+              class="text-xs text-blue-400 hover:text-blue-300">Forgot Password?</a>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+          <span>Sign In</span>
+        </button>
+        <p id="login-error" class="error-text"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ MAIN APP SHELL ============ -->
+  <div id="app-shell" class="app-shell hidden">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand-header">
+        <img src="/logo.jpg" alt="Zachi Logo" class="brand-logo">
+        <h1 class="brand-title">Zachi<span class="brand-title-light">POS</span></h1>
+        <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle Sidebar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- Dashboard -->
+        <a href="#/dashboard" class="nav-item active" data-page="dashboard" data-roles="director">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+          </svg>
+          <span>Dashboard</span>
+        </a>
+
+        <!-- Sales & POS -->
+        <div class="nav-group" data-group="sales">
+          <div class="nav-group-header">
+            <span class="nav-icon">🛒</span>
+            <span>Sales & POS</span>
+            <span class="nav-arrow"></span>
+          </div>
+          <div class="nav-group-items">
+            <a href="#/pos" class="nav-item" data-page="pos" data-roles="cashier,director">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <path d="M2 10h20" />
+                <circle cx="8" cy="15" r="1" />
+                <circle cx="12" cy="15" r="1" />
+                <circle cx="16" cy="15" r="1" />
+              </svg>
+              <span>POS Terminal</span>
+            </a>
+            <a href="#/customers" class="nav-item" data-page="customers" data-roles="cashier,director,consultant">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 00-3-3.87" />
+                <path d="M16 3.13a4 4 0 010 7.75" />
+              </svg>
+              <span>Customers</span>
+            </a>
+            <a href="#/daily-sales" class="nav-item" data-page="daily-sales" data-roles="director,manager">
+              <span class="nav-icon">📅</span>
+              <span>Daily Sales</span>
+            </a>
+            <a href="#/returns" class="nav-item" data-page="returns" data-roles="director,cashier"
+              data-module="modules.returns">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="1 4 1 10 7 10" />
+                <path d="M3.51 15a9 9 0 102.13-9.36L1 10" />
+              </svg>
+              <span>Returns</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Inventory Group -->
+        <div class="nav-group" data-group="inventory">
+          <div class="nav-group-header">
+            <span class="nav-icon">📦</span>
+            <span>Inventory</span>
+            <span class="nav-arrow"></span>
+          </div>
+          <div class="nav-group-items">
+            <a href="#/inventory" class="nav-item" data-page="inventory" data-roles="director">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+              <span>Products List</span>
+            </a>
+            <a href="#/stock-receiving" class="nav-item" data-page="stock-receiving" data-roles="director,manager">
+              <span class="nav-icon">📥</span>
+              <span>Stock Receiving</span>
+            </a>
+            <a href="#/suppliers" class="nav-item" data-page="suppliers" data-roles="director"
+              data-module="modules.suppliers">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                <circle cx="8.5" cy="7" r="4" />
+                <path d="M20 8v6" />
+                <path d="M23 11h-6" />
+              </svg>
+              <span>Suppliers</span>
+            </a>
+            <a href="#/purchases" class="nav-item" data-page="purchases" data-roles="director"
+              data-module="modules.purchases">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <path d="M16 10a4 4 0 01-8 0" />
+              </svg>
+              <span>Purchases</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Operations Group -->
+        <div class="nav-group" data-group="operations">
+          <div class="nav-group-header">
+            <span class="nav-icon">🛠️</span>
+            <span>Operations</span>
+            <span class="nav-arrow"></span>
+          </div>
+          <div class="nav-group-items">
+            <a href="#/jobs" class="nav-item" data-page="jobs" data-roles="director,designer,cashier"
+              data-module="modules.jobs">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M9 3v18" />
+                <path d="M3 9h6" />
+                <path d="M3 15h6" />
+                <circle cx="16" cy="12" r="2" />
+              </svg>
+              <span>Job Cards</span>
+            </a>
+            <a href="#/quotes" class="nav-item" data-page="quotes" data-roles="director,cashier"
+              data-module="modules.quotes">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+              <span>Quotes</span>
+            </a>
+            <a href="#/services" class="nav-item" data-page="services" data-roles="director,manager">
+              <span class="nav-icon">⚙️</span>
+              <span>Services</span>
+            </a>
+            <a href="#/cash" class="nav-item" data-page="cash" data-roles="director,cashier" data-module="modules.cash">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="6" width="20" height="12" rx="2" />
+                <circle cx="12" cy="12" r="3" />
+                <path d="M2 10h2" />
+                <path d="M20 10h2" />
+              </svg>
+              <span>Cash Drawer</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Administration & Admin Group -->
+        <div class="nav-group" data-group="admin">
+          <div class="nav-group-header">
+            <span class="nav-icon">🛡️</span>
+            <span>Admin</span>
+            <span class="nav-arrow"></span>
+          </div>
+          <div class="nav-group-items">
+            <a href="#/reports" class="nav-item" data-page="reports" data-roles="director,manager">
+              <span class="nav-icon">📈</span>
+              <span>Reports</span>
+            </a>
+            <a href="#/audit" class="nav-item" data-page="audit" data-roles="director">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+              <span>Audit Trail</span>
+            </a>
+            <a href="#/users" class="nav-item" data-page="users" data-roles="director">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 00-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 010 7.75"></path>
+              </svg>
+              <span>Users</span>
+            </a>
+            <a href="#/permissions" class="nav-item" data-page="permissions" data-roles="director">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <rect x="8" y="11" width="8" height="4" rx="1" fill="currentColor" fill-opacity="0.2"></rect>
+              </svg>
+              <span>Permissions Matrix</span>
+            </a>
+            <a href="#/approvals" class="nav-item" data-page="approvals" data-roles="director">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              <span>Approvals</span>
+            </a>
+            <a href="#/loyalty" class="nav-item" data-page="loyalty" data-roles="director,cashier"
+              data-module="modules.loyalty">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon
+                  points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+              <span>Loyalty Program</span>
+            </a>
+            <a href="#/promotions" class="nav-item" data-page="promotions" data-roles="director,manager">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path>
+                <line x1="7" y1="7" x2="7.01" y2="7"></line>
+              </svg>
+              <span>Promotions</span>
+            </a>
+            <a href="#/settings" class="nav-item" data-page="settings" data-roles="director">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path
+                  d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z">
+                </path>
+              </svg>
+              <span>System Settings</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-info" id="user-info">
+          <div class="user-avatar" id="user-avatar">D</div>
+          <div class="user-details">
+            <span class="user-name" id="user-name">Director</span>
+            <span class="user-role" id="user-role">director</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Header Bar -->
+      <header class="top-header" id="top-header">
+        <div class="header-left">
+          <span class="header-welcome" id="header-welcome">Welcome back</span>
+          <span class="header-datetime" id="header-datetime">Loading...</span>
+        </div>
+        <div class="header-right">
+          <!-- Notification Bell -->
+          <div class="relative mr-4">
+            <button class="p-2 text-white/70 hover:text-white relative"
+              onclick="document.getElementById('notification-list').classList.toggle('hidden')" title="Notifications">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+              <div id="notification-badge"
+                class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-gray-900 hidden"></div>
+            </button>
+            <div id="notification-list"
+              class="absolute right-0 mt-2 w-72 bg-gray-800 border border-white/10 rounded-lg shadow-xl overflow-hidden z-50 hidden">
+              <div class="p-4 text-center text-white/50 text-sm">No new notifications</div>
+            </div>
+          </div>
+
+          <div class="header-user-info">
+            <div class="header-avatar" id="header-avatar">D</div>
+            <div class="header-user-details">
+              <span class="header-user-name" id="header-user-name">Director</span>
+              <span class="header-user-role" id="header-user-role">director</span>
+            </div>
+          </div>
+          <button class="header-logout" id="logout-btn" title="Sign Out">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Sign Out
+          </button>
+        </div>
+      </header>
+
+      <div id="page-container">
+        <!-- Pages loaded dynamically -->
+      </div>
+    </main>
+  </div>
+
+  <!-- ============ TOAST NOTIFICATIONS ============ -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- ============ MODAL OVERLAY ============ -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal" id="modal-content"></div>
+  </div>
+
+  <script>console.log('[HTML] Starting script loads...'); window.addEventListener('error', (e) => console.error('[HTML] Global Error Check:', e.message, 'at', e.filename));</script>
+  <script src="/js/lib/html5-qrcode.min.js" defer></script>
+  <script src="/js/utils/scanner.js" defer></script>
+  <script src="/js/db.js" defer></script>
+  <script src="/js/api.js?v=2.9" defer></script>
+  <script src="/js/utils.js?v=2.9" defer></script>
+  <script src="/js/app.js?v=2.9" defer></script>
+  <script src="/js/pos.js?v=2.9" defer></script>
+  <script src="/js/inventory.js?v=2.9" defer></script>
+  <script src="/js/customers.js?v=2.9" defer></script>
+  <script src="/js/services.js?v=2.9" defer></script>
+  <script src="/js/reports.js?v=2.9" defer></script>
+  <script src="/js/users.js?v=2.9" defer></script>
+  <script src="/js/audit.js?v=2.9" defer></script>
+  <script src="/js/approvals.js?v=2.9" defer></script>
+  <script src="/js/permissions.js?v=2.9" defer></script>
+  <script src="/js/dashboard.js?v=2.9" defer></script>
+
+  <!-- Enterprise Modules -->
+  <script src="/js/jobs.js?v=2.9" defer></script>
+  <script src="/js/cash.js?v=2.9" defer></script>
+  <script src="/js/suppliers.js?v=2.9" defer></script>
+  <script src="/js/purchases.js?v=2.9" defer></script>
+  <script src="/js/returns.js?v=2.9" defer></script>
+  <script src="/js/quotes.js?v=2.9" defer></script>
+  <script src="/js/loyalty.js?v=2.9" defer></script>
+  <script src="/js/settings.js?v=2.9" defer></script>
+  <script src="/js/payments.js?v=2.9" defer></script>
+
+  <script src="/js/daily_sales.js?v=2.9" defer></script>
+  <script src="/js/reports_adv.js?v=2.9" defer></script>
+  <script src="/js/promotions.js?v=2.9" defer></script>
+  <script src="/js/stock_receiving.js?v=2.8" defer></script>
+  <div id="fallback-loading" class="fallback-loading">
+    <div class="fallback-loading-icon">🏪</div>
+    <div class="fallback-loading-text">Loading Zachi Smart-POS...</div>
+    <div class="fallback-loading-subtext">If this stays visible, a script error prevented the app from starting.</div>
+  </div>
+</body>
+
+</html>
