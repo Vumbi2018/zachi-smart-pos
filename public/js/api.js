@@ -62,68 +62,12 @@ const API = {
             headers['Authorization'] = `Bearer ${this.token}`;
         }
 
-        // Offline Handling
-        const isActuallyOnline = await this.checkConnectivity();
-        if (!isActuallyOnline) {
-            // 1. Try to serve from DB cache for GET requests
-            if (!options.method || options.method === 'GET') {
-                try {
-                    const cached = await DB.getCachedData(endpoint);
-                    if (cached) {
-                        console.log(`[Offline] Serving cached: ${endpoint}`);
-                        return cached;
-                    }
-                } catch (e) {
-                    console.warn('DB Cache Error:', e);
-                }
-                throw new Error('You are offline and no cached data is available.');
-            }
-
-            // 2. Queue SALE (POST /sales) — return fake receipt so POS stays happy
-            if (options.method === 'POST' && endpoint === '/sales') {
-                const body = JSON.parse(options.body);
-                const offlineSale = { ...body, isOffline: true, tempId: Date.now() };
-                try {
-                    await DB.queueSale(offlineSale);
-                    Utils.toast('Offline: Sale queued — will sync when online.', 'info');
-                    return {
-                        sale_id: offlineSale.tempId,
-                        sale_number: `OFF-${offlineSale.tempId}`,
-                        total_amount: body.amount_paid || 0,
-                        items: body.items,
-                        is_offline: true,
-                        payment_method: body.payment_method
-                    };
-                } catch (e) {
-                    console.error('Offline Sale Queue Error:', e);
-                    throw new Error('Failed to save offline sale.');
-                }
-            }
-
-            // 3. Queue any other mutation (PUT/PATCH/POST edits, etc.)
-            const mutMethod = options.method || 'POST';
-            if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(mutMethod)) {
-                try {
-                    const body = options.body ? JSON.parse(options.body) : null;
-                    await DB.queueMutation(mutMethod, endpoint, body);
-                    Utils.toast('Offline: Change queued — will sync when you reconnect.', 'info');
-                    // Return a fake success so the caller doesn't throw
-                    return { queued: true, offline: true };
-                } catch (e) {
-                    console.error('Offline Mutation Queue Error:', e);
-                    throw new Error('Failed to queue offline change.');
-                }
-            }
-
-            throw new Error('You are offline. This action requires an internet connection.');
-        }
-
         try {
+            // 1. PRIMARY FETCH
             const response = await fetch(url, { ...options, headers });
 
             if (response.status === 401 && !url.includes('/auth/login')) {
                 this.clearToken();
-                // BUG 4 FIX: also hide the app shell immediately on 401
                 if (typeof App !== 'undefined' && App.showLogin) {
                     App.showLogin();
                 } else {
@@ -139,14 +83,13 @@ const API = {
             } else {
                 const text = await response.text();
                 data = { error: text || 'Internal Server Error' };
-                console.warn('[API] Non-JSON response received:', text);
             }
 
             if (!response.ok) {
                 throw new Error(data.error || 'Request failed');
             }
 
-            // Online: Cache successful GET responses for critical data
+            // SUCCESS: Cache GET responses for critical data
             if ((!options.method || options.method === 'GET') &&
                 (endpoint.includes('/products') ||
                     endpoint.includes('/services') ||
@@ -163,77 +106,78 @@ const API = {
 
             return data;
         } catch (err) {
-            console.error(`API Error [${endpoint}]:`, err);
+            const isNetworkError = (err instanceof TypeError || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'));
 
-            const isNetworkError = err instanceof TypeError || err.message.includes('Failed to fetch') || err.message.includes('NetworkError');
-            const errorMsg = isNetworkError ? `Failed to fetch [${url}]` : err.message;
-
-            // === Windows Tauri Fallback: Retry on local sidecar if master is unreachable ===
-            // Android has no local sidecar — it falls straight through to IndexedDB.
-            if (isNetworkError && this.isTauri) {
+            // 2. TAURI FALLBACK: Try Local Sidecar if Master is unreachable
+            if (isNetworkError && this.isTauri && url.startsWith(MASTER_API_URL)) {
                 const localUrl = `${LOCAL_SIDECAR_URL}${endpoint}`;
-                console.warn(`[API] Master unreachable, trying local sidecar: ${localUrl}`);
+                console.warn(`[API] Cloud unreachable, retrying Local Sidecar: ${localUrl}`);
                 try {
                     const localResponse = await fetch(localUrl, { ...options, headers });
-                    const contentType = localResponse.headers.get('content-type');
                     let localData;
-                    if (contentType && contentType.includes('application/json')) {
+                    const lContentType = localResponse.headers.get('content-type');
+                    if (lContentType && lContentType.includes('application/json')) {
                         localData = await localResponse.json();
                     } else {
-                        const text = await localResponse.text();
-                        localData = { error: text || 'Local sidecar error' };
+                        localData = { error: await localResponse.text() || 'Local sidecar error' };
                     }
-                    if (!localResponse.ok) throw new Error(localData.error || 'Local sidecar request failed');
-                    console.log(`[API] Local sidecar responded OK for: ${endpoint}`);
+                    if (!localResponse.ok) throw new Error(localData.error || 'Local sidecar failed');
                     return localData;
                 } catch (localErr) {
-                    console.warn(`[API] Local sidecar also failed: ${localErr.message}. Falling back to IndexedDB cache.`);
+                    console.error('[API] Local sidecar also failed:', localErr.message);
                 }
             }
-            // ==================================================================================
 
-            // If fetch fails (network error), try DB cache as fallback
-            if ((!options.method || options.method === 'GET') && isNetworkError) {
-                let cached = await DB.getCachedData(endpoint);
+            // 3. OFFLINE HANDLING: If everything failed, serve from cache or queue
+            if (isNetworkError) {
+                // Serve from cache for GET
+                if (!options.method || options.method === 'GET') {
+                    const cached = await DB.getCachedData(endpoint);
+                    if (cached) {
+                        console.log(`[Offline Fallback] Serving cached items for: ${endpoint}`);
+                        return cached.value;
+                    }
 
-                // Offline Search Interceptors (Simulate API filtering locally)
-                if (!cached) {
+                    // Intercept common searches
                     try {
-                        // Extract just the path and queries safely
                         const pathBase = endpoint.split('?')[0];
                         const queryStr = endpoint.split('?')[1] || '';
                         const searchParams = new URLSearchParams(queryStr);
-
                         if (pathBase === '/products' || pathBase.endsWith('/products')) {
                             const masterCatalog = await DB.getCachedData('/products?limit=100000');
-                            if (masterCatalog && masterCatalog.value) {
-                                const products = masterCatalog.value.products || masterCatalog.value;
-                                const search = searchParams.get('search');
+                            if (masterCatalog && (masterCatalog.products || masterCatalog.value)) {
+                                const products = masterCatalog.value?.products || masterCatalog.value || [];
+                                const search = searchParams.get('search')?.toLowerCase();
                                 const barcode = searchParams.get('barcode');
-
                                 let filtered = products;
-                                if (barcode) {
-                                    filtered = products.filter(p => p.barcode === barcode);
-                                } else if (search) {
-                                    const s = search.toLowerCase();
-                                    filtered = products.filter(p =>
-                                        p.name.toLowerCase().includes(s) ||
-                                        (p.barcode && p.barcode.includes(s))
-                                    );
-                                }
-                                console.log(`[Offline Intercept] Resolved ${filtered.length} products locally.`);
+                                if (barcode) filtered = products.filter(p => p.barcode === barcode);
+                                else if (search) filtered = products.filter(p => p.name.toLowerCase().includes(search) || (p.barcode && p.barcode.includes(search)));
                                 return { products: filtered, total: filtered.length, pages: 1, current_page: 1 };
                             }
                         }
-                    } catch (e) {
-                        console.warn('Offline parsing error:', e);
-                    }
+                    } catch (e) { console.warn('Offline parsing error:', e); }
+
+                    throw new Error('You are offline and no cached data is available.');
                 }
 
-                if (cached) {
-                    console.log(`[Offline Fallback] Serving cached items for: ${endpoint}`);
-                    return cached.value;
+                // Queue mutations for POST/PUT/PATCH/DELETE
+                const mutMethod = options.method || 'POST';
+                if (endpoint === '/sales' && mutMethod === 'POST') {
+                    const body = JSON.parse(options.body);
+                    const offlineSale = { ...body, isOffline: true, tempId: Date.now() };
+                    await DB.queueSale(offlineSale);
+                    Utils.toast('Offline: Sale queued — will sync when you reconnect.', 'info');
+                    return { sale_id: offlineSale.tempId, sale_number: `OFF-${offlineSale.tempId}`, total_amount: body.amount_paid, items: body.items, is_offline: true };
                 }
+
+                if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(mutMethod)) {
+                    const body = options.body ? JSON.parse(options.body) : null;
+                    await DB.queueMutation(mutMethod, endpoint, body);
+                    Utils.toast('Offline: Change queued.', 'info');
+                    return { queued: true, offline: true };
+                }
+
+                throw new Error('You are offline. This action requires an internet connection.');
             }
             throw err;
         }
