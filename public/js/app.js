@@ -31,7 +31,7 @@ const App = {
         this.setupOfflineMode();
 
         // BUG 1 FIX: Decode JWT payload and check expiry BEFORE trusting localStorage
-        const token = localStorage.getItem('zspos_token');
+        const token = sessionStorage.getItem('zspos_token');
         const user = Utils.getUser();
 
         if (!token || !user) {
@@ -85,7 +85,13 @@ const App = {
         // Online/Offline Listeners
         window.addEventListener('online', () => {
             this.updateOnlineStatus(true);
-            API.syncOfflineSales();
+            // Replay any queued operations in order: mutations first, then sales
+            API.syncOfflineMutations().catch(e => console.warn('[Sync] mutations:', e));
+            API.syncOfflineSales().catch(e => console.warn('[Sync] sales:', e));
+            // New: Trigger the local sidecar's PostgreSQL -> Cloud sync
+            if (typeof API.triggerSidecarSync === 'function') {
+                API.triggerSidecarSync().catch(e => console.warn('[Sync] sidecar:', e));
+            }
         });
         window.addEventListener('offline', () => {
             this.updateOnlineStatus(false);
@@ -94,23 +100,29 @@ const App = {
         this.updateOnlineStatus(navigator.onLine);
     },
 
+
     updateOnlineStatus(isOnline) {
-        let badge = document.getElementById('offline-badge');
-        if (!badge) {
-            // Create badge
-            badge = document.createElement('div');
-            badge.id = 'offline-badge';
-            badge.className = 'fixed bottom-4 right-4 bg-red-600 text-white px-3 py-1 rounded shadow-lg z-50 text-sm font-bold hidden';
-            badge.textContent = '⚠️ You are Offline';
-            document.body.appendChild(badge);
-        }
+        const statusEl = document.getElementById('network-status');
+        const dotEl = document.getElementById('network-dot');
+        const textEl = document.getElementById('network-text');
+
+        if (!statusEl) return;
 
         if (isOnline) {
-            badge.classList.add('hidden');
+            statusEl.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 mr-2 text-sm font-semibold transition-colors duration-300';
+            dotEl.className = 'w-2 h-2 rounded-full bg-green-400 animate-pulse';
+            textEl.textContent = 'Online';
             Utils.toast('You are back online!', 'success');
+
+            // Aggressively cache catalog
+            if (window.API && typeof API.syncMasterCatalog === 'function') {
+                API.syncMasterCatalog();
+            }
         } else {
-            badge.classList.remove('hidden');
-            Utils.toast('You are offline. Offline mode enabled.', 'warning');
+            statusEl.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 mr-2 text-sm font-semibold transition-colors duration-300';
+            dotEl.className = 'w-2 h-2 rounded-full bg-red-500';
+            textEl.textContent = 'Offline';
+            Utils.toast('You are offline. Running from local cache.', 'warning');
         }
     },
 
@@ -129,7 +141,7 @@ const App = {
             try {
                 const data = await API.post('/auth/login', { username, password });
                 API.setToken(data.token);
-                localStorage.setItem('zspos_user', JSON.stringify(data.user));
+                sessionStorage.setItem('zspos_user', JSON.stringify(data.user));
                 this.showApp(data.user);
                 Utils.toast(`Welcome back, ${data.user.full_name}!`, 'success');
             } catch (err) {
@@ -213,7 +225,7 @@ const App = {
 
         // Update sidebar user display
         document.getElementById('user-name').textContent = user.full_name;
-        document.getElementById('user-role').textContent = user.role;
+        document.getElementById('sidebar-user-role').textContent = user.role;
         document.getElementById('user-avatar').textContent = user.full_name.charAt(0).toUpperCase();
 
         // Update header user display
@@ -233,17 +245,31 @@ const App = {
             if (!this.state.settings) {
                 this.state.settings = await API.get('/settings');
             }
+            // Proactively cache all products/services/customers into IndexedDB on startup
+            if (navigator.onLine && typeof API.syncMasterCatalog === 'function') {
+                API.syncMasterCatalog();
+                // New: Also trigger sidecar sync on app startup if online
+                if (typeof API.triggerSidecarSync === 'function') {
+                    API.triggerSidecarSync();
+                }
+            }
             this.settings = this.state.settings;
 
             // Initialize Idle Timer if configured
-            const idleTimeoutMins = parseInt(this.settings['system.idle_timeout']);
-            if (idleTimeoutMins > 0) {
+            // NOTE: system_settings JSONB may return a string or number; coerce with parseInt
+            const rawTimeout = this.settings['system.idle_timeout'];
+            const idleTimeoutMins = parseInt(rawTimeout, 10);
+            if (!isNaN(idleTimeoutMins) && idleTimeoutMins > 0) {
+                console.log(`[Auth] Idle timeout set to ${idleTimeoutMins} minutes.`);
                 this.startIdleTimer(idleTimeoutMins);
+            } else {
+                console.log('[Auth] Idle timeout disabled (0 or not set).');
             }
         } catch (err) {
             console.error('Failed to load settings:', err);
             this.settings = {};
         }
+
 
         // Filter nav items based on role AND settings
         document.querySelectorAll('.nav-item').forEach(item => {
@@ -461,6 +487,12 @@ const App = {
             case 'approvals':
                 Approvals.render(container);
                 break;
+            case 'backlog-sales':
+                BacklogSales.render(container);
+                break;
+            case 'credit-orders':
+                CreditOrders.render(container);
+                break;
             default:
                 container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📄</div><p>Page not found</p></div>`;
         }
@@ -522,7 +554,7 @@ const App = {
             if (notifications && notifications.length > 0) {
                 badge.classList.remove('hidden');
                 list.innerHTML = notifications.map(n => `
-                    <div class="p-3 border-b border-white/5 hover:bg-white/5 cursor-pointer" onclick="App.markRead(${n.id})">
+                    <div class="p-3 border-b border-white/5 hover:bg-white/5 cursor-pointer" onclick="App.markRead('${n.id}')">
                         <div class="text-sm text-white/90">${n.message}</div>
                         <div class="text-xs text-white/50 mt-1">${new Date(n.created_at).toLocaleString()}</div>
                     </div>

@@ -89,9 +89,9 @@ const Quotes = {
                     <span class="badge badge-${this.getStatusColor(q.status)}">${q.status}</span>
                 </td>
                 <td class="p-4 text-right">
-                    <button class="btn btn-sm btn-secondary" onclick="Quotes.viewQuote(${q.quote_id})">View</button>
+                    <button class="btn btn-sm btn-secondary" onclick="Quotes.viewQuote('${q.quote_id}')">View</button>
                     ${q.status === 'Accepted' ?
-                `<button class="btn btn-sm btn-success ml-2" onclick="Quotes.convertQuote(${q.quote_id})">Convert to Sale</button>` : ''
+                `<button class="btn btn-sm btn-success ml-2" onclick="Quotes.convertQuote('${q.quote_id}')">Convert to Sale</button>` : ''
             }
                 </td>
             </tr>
@@ -192,14 +192,34 @@ const Quotes = {
         return d.toISOString().split('T')[0];
     },
 
-    addLineItem() {
+    async addLineItem() {
         const tbody = document.getElementById('quote-lines-tbody');
         const id = Date.now();
         const tr = document.createElement('tr');
         tr.className = 'border-b last:border-0 quote-line-row';
+
+        // Fetch products if not already loaded in state
+        if (!this.products) {
+            try {
+                const res = await API.get('/products?limit=1000');
+                this.products = res.products || [];
+            } catch (e) {
+                this.products = [];
+            }
+        }
+
+        // Create datalist if it doesn't exist
+        if (!document.getElementById('inventory-datalist')) {
+            const dl = document.createElement('datalist');
+            dl.id = 'inventory-datalist';
+            dl.innerHTML = this.products.map(p => `<option value="${p.name}" data-price="${p.unit_price}">${p.category || 'General'}</option>`).join('');
+            document.body.appendChild(dl);
+        }
+
         tr.innerHTML = `
             <td class="py-2 pr-2">
-                <input type="text" name="description" class="form-input" placeholder="Item description" required oninput="Quotes.updateLineTotal(this)">
+                <input type="text" name="description" class="form-input" list="inventory-datalist" placeholder="Search product or type description..." required 
+                       oninput="Quotes.handleItemInput(this)">
             </td>
             <td class="py-2 pr-2">
                 <input type="number" name="quantity" class="form-input" value="1" min="1" step="0.1" oninput="Quotes.updateLineTotal(this)">
@@ -216,6 +236,17 @@ const Quotes = {
             </td>
         `;
         tbody.appendChild(tr);
+    },
+
+    handleItemInput(input) {
+        const val = input.value;
+        const option = Array.from(document.getElementById('inventory-datalist').options).find(opt => opt.value === val);
+        if (option) {
+            const price = option.dataset.price;
+            const row = input.closest('tr');
+            row.querySelector('[name="unit_price"]').value = price;
+            this.updateLineTotal(input);
+        }
     },
 
     updateLineTotal(input) {
@@ -366,7 +397,7 @@ const Quotes = {
                 <div class="modal-footer">
                     <button class="btn btn-secondary" onclick="Utils.closeModal()">Close</button>
                     ${quote.status === 'Accepted' && !quote.converted_sale_id ?
-                    `<button class="btn btn-success" onclick="Quotes.convertQuote(${quote.quote_id})">Convert to Sale</button>` : ''
+                    `<button class="btn btn-success" onclick="Quotes.convertQuote('${quote.quote_id}')">Convert to Sale</button>` : ''
                 }
                     <button class="btn btn-primary" onclick="window.print()">🖨 Print Quote</button>
                 </div>

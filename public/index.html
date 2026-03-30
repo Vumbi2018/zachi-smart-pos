@@ -11,9 +11,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Material Icons hosted locally for offline support -->
+  <link rel="stylesheet" href="/css/lib/font-awesome.all.min.css">
   <link rel="stylesheet" href="/css/styles.css?v=2.2">
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script src="/js/lib/apexcharts.min.js"></script>
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1B3A5C">
@@ -21,8 +22,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="ZachiPOS">
   <link rel="apple-touch-icon" href="/logo.jpg">
-  <link rel="icon" type="image/svg+xml"
-    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231B3A5C'/><text x='50' y='68' font-family='Inter,sans-serif' font-size='52' font-weight='800' fill='white' text-anchor='middle'>Z</text></svg>">
+  <link rel="icon" type="image/jpeg" href="/logo.jpg">
 </head>
 
 <body>
@@ -225,6 +225,14 @@
               <span class="nav-icon">📈</span>
               <span>Reports</span>
             </a>
+            <a href="#/backlog-sales" class="nav-item" data-page="backlog-sales" data-roles="director">
+              <span class="nav-icon">🗂️</span>
+              <span>Backlog Entry</span>
+            </a>
+            <a href="#/credit-orders" class="nav-item" data-page="credit-orders" data-roles="director,manager">
+              <span class="nav-icon">💳</span>
+              <span>Credit Orders</span>
+            </a>
             <a href="#/audit" class="nav-item" data-page="audit" data-roles="director">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
@@ -290,7 +298,7 @@
           <div class="user-avatar" id="user-avatar">D</div>
           <div class="user-details">
             <span class="user-name" id="user-name">Director</span>
-            <span class="user-role" id="user-role">director</span>
+            <span class="user-role" id="sidebar-user-role">director</span>
           </div>
         </div>
       </div>
@@ -305,6 +313,13 @@
           <span class="header-datetime" id="header-datetime">Loading...</span>
         </div>
         <div class="header-right">
+          <!-- Network Status Beacon -->
+          <div id="network-status"
+            class="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 mr-2 text-sm font-semibold transition-colors duration-300">
+            <span id="network-dot" class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+            <span id="network-text">Online</span>
+          </div>
+
           <!-- Notification Bell -->
           <div class="relative mr-4">
             <button class="p-2 text-white/70 hover:text-white relative"
@@ -362,9 +377,9 @@
   <script src="/js/utils.js?v=2.9" defer></script>
   <script src="/js/app.js?v=2.9" defer></script>
   <script src="/js/pos.js?v=2.9" defer></script>
-  <script src="/js/inventory.js?v=2.9" defer></script>
+  <script src="/js/inventory.js?v=3.1" defer></script>
   <script src="/js/customers.js?v=2.9" defer></script>
-  <script src="/js/services.js?v=2.9" defer></script>
+  <script src="/js/services.js?v=3.1" defer></script>
   <script src="/js/reports.js?v=2.9" defer></script>
   <script src="/js/users.js?v=2.9" defer></script>
   <script src="/js/audit.js?v=2.9" defer></script>
@@ -384,7 +399,10 @@
   <script src="/js/payments.js?v=2.9" defer></script>
 
   <script src="/js/daily_sales.js?v=2.9" defer></script>
-  <script src="/js/reports_adv.js?v=2.9" defer></script>
+  <script src="/js/reports_adv.js?v=3.0" defer></script>
+  <script src="/js/inventory_alerts.js?v=1.0" defer></script>
+  <script src="/js/backlog_sales.js?v=1.0" defer></script>
+  <script src="/js/credit_orders.js?v=1.0" defer></script>
   <script src="/js/promotions.js?v=2.9" defer></script>
   <script src="/js/stock_receiving.js?v=2.8" defer></script>
   <div id="fallback-loading" class="fallback-loading">

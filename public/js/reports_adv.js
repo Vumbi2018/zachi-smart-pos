@@ -23,7 +23,13 @@ const ReportsAdv = {
                         <i class="fas fa-sync-alt mr-2"></i> Update
                     </button>
                     <button class="btn btn-outline border-slate-300 text-slate-600 hover:bg-slate-50" onclick="ReportsAdv.exportCurrent()">
-                        <i class="fas fa-file-csv mr-2"></i> Export
+                        <i class="fas fa-file-csv mr-2"></i> Export CSV
+                    </button>
+                    <button class="btn btn-outline border-slate-300 text-slate-600 hover:bg-slate-50" onclick="ReportsAdv.printCurrent()">
+                        🖨️ Print
+                    </button>
+                    <button class="btn btn-outline border-slate-300 text-slate-600 hover:bg-slate-50" onclick="ReportsAdv.downloadPdf()">
+                        📄 PDF
                     </button>
                 </div>
             </div>
@@ -34,6 +40,7 @@ const ReportsAdv = {
                 <button class="premium-tab" onclick="ReportsAdv.switchTab('insights', this)">Business Insights</button>
                 <button class="premium-tab" onclick="ReportsAdv.switchTab('stock', this)">Stock & Valuation</button>
                 <button class="premium-tab" onclick="ReportsAdv.switchTab('financials', this)">Financials & Tax</button>
+                <button class="premium-tab" onclick="ReportsAdv.switchTab('profit-margin', this)">Profit Margin</button>
             </div>
 
             <div id="report-content" class="report-page-bg">
@@ -71,6 +78,7 @@ const ReportsAdv = {
             else if (this.currentTab === 'insights') await this.renderInsights(content);
             else if (this.currentTab === 'stock') await this.renderStock(content);
             else if (this.currentTab === 'financials') await this.renderFinancials(content);
+            else if (this.currentTab === 'profit-margin') await this.renderProfitMargin(content);
         } catch (err) {
             console.error(err);
             content.innerHTML = `<div class="p-8 text-center text-red-600">Error loading report: ${err.message}</div>`;
@@ -272,6 +280,75 @@ const ReportsAdv = {
         this.currentData = [financials, tax];
     },
 
+    async renderProfitMargin(container) {
+        const groupBy = this.pmGroupBy || 'category';
+        const data = await API.get(`/reports/profit-margin?groupBy=${groupBy}&startDate=${this.dateRange.start}&endDate=${this.dateRange.end}`);
+
+        container.innerHTML = `
+            <div class="report-grid-3 mb-6">
+                <div class="report-premium-card">
+                    <div class="report-metric-label">Total Revenue</div>
+                    <div class="report-metric-value text-blue-600">${Utils.formatCurrency(data.summary.revenue)}</div>
+                </div>
+                <div class="report-premium-card">
+                    <div class="report-metric-label">Total COGS</div>
+                    <div class="report-metric-value text-red-500">${Utils.formatCurrency(data.summary.cogs)}</div>
+                </div>
+                <div class="report-premium-card">
+                    <div class="report-metric-label">Avg. Margin %</div>
+                    <div class="report-metric-value ${data.summary.margin_pct >= 30 ? 'text-green-600' : 'text-orange-500'}">
+                        ${data.summary.margin_pct.toFixed(2)}%
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-premium-card p-0">
+                <div class="report-header px-6 pt-6 mb-0 border-none flex justify-between items-center">
+                    <h3 class="report-header-title">Profit Margin Details</h3>
+                    <select class="form-input py-1.5 px-3 text-sm font-medium bg-slate-50 border-slate-200 rounded-lg text-slate-700 focus:ring-blue-500 focus:border-blue-500" onchange="ReportsAdv.pmGroupBy = this.value; ReportsAdv.loadCurrentTab()">
+                        <option value="category" ${groupBy === 'category' ? 'selected' : ''}>Group by Category</option>
+                        <option value="product" ${groupBy === 'product' ? 'selected' : ''}>Group by Product</option>
+                    </select>
+                </div>
+                <div class="report-table-wrapper mx-6 mb-6">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>${groupBy === 'product' ? 'Product Name' : 'Category'}</th>
+                                ${groupBy === 'product' ? '<th>Category</th>' : ''}
+                                <th class="text-right">Qty Sold</th>
+                                <th class="text-right">Revenue</th>
+                                <th class="text-right">COGS</th>
+                                <th class="text-right">Gross Profit</th>
+                                <th class="text-right">Margin %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.data.map(item => `
+                                <tr>
+                                    <td class="font-medium">${item.item_name || 'Uncategorized'}</td>
+                                    ${groupBy === 'product' ? `<td><span class="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-600">${item.category_name || '-'}</span></td>` : ''}
+                                    <td class="text-right">${item.items_sold}</td>
+                                    <td class="text-right">${Utils.formatCurrency(item.revenue)}</td>
+                                    <td class="text-right text-red-500">${Utils.formatCurrency(item.cogs)}</td>
+                                    <td class="text-right font-bold text-slate-800">${Utils.formatCurrency(item.gross_profit)}</td>
+                                    <td class="text-right">
+                                        <span class="report-badge ${parseFloat(item.margin_pct) >= 30 ? 'report-badge-success' : 'report-badge-warning'}">
+                                            ${parseFloat(item.margin_pct).toFixed(1)}%
+                                        </span>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                            ${data.data.length === 0 ? `<tr><td colspan="${groupBy === 'product' ? 7 : 6}" class="text-center py-8 text-slate-500"><i class="fas fa-inbox text-2xl mb-2 block opcaity-50"></i>No sales data found for this period.</td></tr>` : ''}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        this.currentData = data.data; // Store table array for CSV export
+    },
+
     async renderTrends(container) {
         const type = this.aggType || 'month';
         const data = await API.get(`/reports/aggregated?type=${type}`);
@@ -299,18 +376,18 @@ const ReportsAdv = {
             <tbody>
                 ${data.map(d => `
                     <tr>
-                        <td>${ (() => {
-                            const date = new Date(d.period);
-                            if (type === 'day') return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-                            if (type === 'week') {
-                                const endOfWeek = new Date(date);
-                                endOfWeek.setDate(date.getDate() + 6);
-                                return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' - ' + endOfWeek.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-                            }
-                            if (type === 'month') return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-                            if (type === 'quarter') return 'Q' + Math.ceil((date.getMonth() + 1) / 3) + ' ' + date.getFullYear();
-                            return date.getFullYear().toString();
-                        })() }</td>
+                        <td>${(() => {
+                const date = new Date(d.period);
+                if (type === 'day') return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                if (type === 'week') {
+                    const endOfWeek = new Date(date);
+                    endOfWeek.setDate(date.getDate() + 6);
+                    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' - ' + endOfWeek.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                }
+                if (type === 'month') return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+                if (type === 'quarter') return 'Q' + Math.ceil((date.getMonth() + 1) / 3) + ' ' + date.getFullYear();
+                return date.getFullYear().toString();
+            })()}</td>
                         <td class="text-right">${d.transactions}</td>
                         <td class="text-right font-bold text-slate-800">${Utils.formatCurrency(d.revenue)}</td>
                     </tr>
@@ -364,8 +441,13 @@ const ReportsAdv = {
             }
         };
 
-        const chart = new ApexCharts(document.querySelector("#sales-chart"), options);
-        chart.render();
+        if (typeof ApexCharts !== 'undefined') {
+            const chart = new ApexCharts(document.querySelector("#sales-chart"), options);
+            chart.render();
+        } else {
+            const chartEl = document.querySelector("#sales-chart");
+            if (chartEl) chartEl.innerHTML = '<div class="p-8 text-center text-slate-400">Chart library failed to load. Please ensure <code>apexcharts.min.js</code> is in <code>/public/js/lib/</code></div>';
+        }
 
         this.currentData = data;
     },
@@ -466,7 +548,6 @@ const ReportsAdv = {
         };
 
         const hChart = new ApexCharts(document.querySelector("#hourly-chart"), hourlyOptions);
-        hChart.render();
 
         this.currentData = staff;
     },
@@ -474,26 +555,118 @@ const ReportsAdv = {
     exportCurrent() {
         if (!this.currentData) return Utils.toast('No data to export', 'error');
 
-        // Very basic CSV export for list data
-        if (Array.isArray(this.currentData)) {
+        let csv = '';
+        let filename = `zachipos_${this.currentTab}_${this.dateRange.start}_${this.dateRange.end}.csv`;
+
+        if (this.currentTab === 'trends') {
+            csv = 'Period,Transactions,Revenue\n';
+            this.currentData.forEach(d => {
+                const date = new Date(d.period);
+                csv += `"${date.toLocaleDateString()}", ${d.transactions},${parseFloat(d.revenue).toFixed(2)} \n`;
+            });
+        } else if (this.currentTab === 'sales') {
+            csv = 'Date,Transactions,Revenue (K)\n';
+            this.currentData.forEach(d => {
+                csv += `"${new Date(d.date).toLocaleDateString()}", ${d.count},${parseFloat(d.total).toFixed(2)} \n`;
+            });
+        } else if (this.currentTab === 'insights') {
+            csv = 'Staff Name,Total Sales,Total Revenue (K),Avg Sale Value (K)\n';
+            this.currentData.forEach(s => {
+                csv += `"${s.staff_name}", ${s.total_transactions},${parseFloat(s.total_revenue).toFixed(2)},${parseFloat(s.avg_sale_value).toFixed(2)} \n`;
+            });
+        } else if (this.currentTab === 'stock') {
+            csv = 'Product,Last Sale Date,Qty In Stock,Value Tied Up (K)\n';
+            this.currentData.forEach(p => {
+                const lastSale = p.last_sale ? new Date(p.last_sale).toLocaleDateString() : 'Never';
+                csv += `"${p.name}", ${lastSale},${p.stock_quantity},${(p.stock_quantity * parseFloat(p.cost_price)).toFixed(2)} \n`;
+            });
+        } else if (this.currentTab === 'financials') {
+            // currentData is [financials, tax]
+            const [fin, tax] = Array.isArray(this.currentData) ? this.currentData : [this.currentData, null];
+            csv = 'Line Item,Amount (K)\n';
+            if (fin) {
+                csv += `"Net Revenue", ${parseFloat(fin.revenue || 0).toFixed(2)} \n`;
+                csv += `"Cost of Goods Sold", ${parseFloat(fin.cogs || 0).toFixed(2)} \n`;
+                csv += `"Gross Profit", ${parseFloat(fin.gross_profit || 0).toFixed(2)} \n`;
+                csv += `"Operating Expenses", ${parseFloat(fin.expenses || 0).toFixed(2)} \n`;
+                csv += `"Net Profit", ${parseFloat(fin.net_profit || 0).toFixed(2)} \n`;
+            }
+            if (tax) csv += `"VAT Collected", ${parseFloat(tax.tax_collected || 0).toFixed(2)} \n`;
+        } else if (this.currentTab === 'profit-margin') {
+            const isProduct = this.pmGroupBy === 'product';
+            if (isProduct) {
+                csv = 'Product,Category,Qty Sold,Revenue,COGS,Gross Profit,Margin %\n';
+            } else {
+                csv = 'Category,Qty Sold,Revenue,COGS,Gross Profit,Margin %\n';
+            }
+            this.currentData.forEach(item => {
+                if (isProduct) {
+                    csv += `"${item.item_name || 'Uncategorized'}","${item.category_name || '-'}",${item.items_sold},${parseFloat(item.revenue).toFixed(2)},${parseFloat(item.cogs).toFixed(2)},${parseFloat(item.gross_profit).toFixed(2)},${parseFloat(item.margin_pct).toFixed(2)}\n`;
+                } else {
+                    csv += `"${item.item_name || 'Uncategorized'}",${item.items_sold},${parseFloat(item.revenue).toFixed(2)},${parseFloat(item.cogs).toFixed(2)},${parseFloat(item.gross_profit).toFixed(2)},${parseFloat(item.margin_pct).toFixed(2)}\n`;
+                }
+            });
+        } else {
+            // Fallback: generic JSON-to-CSV
+            if (!Array.isArray(this.currentData) || !this.currentData.length) return Utils.toast('No data to export', 'warning');
             const keys = Object.keys(this.currentData[0]);
-            let csv = keys.join(',') + '\n';
+            csv = keys.join(',') + '\n';
             this.currentData.forEach(row => {
                 csv += keys.map(k => {
                     let val = row[k];
                     if (typeof val === 'string' && val.includes(',')) val = `"${val}"`;
-                    return val;
+                    return val ?? '';
                 }).join(',') + '\n';
             });
-
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `report_export_${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-        } else {
-            Utils.toast('Complex data export not supported yet', 'warning');
         }
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    },
+
+    printCurrent() {
+        const content = document.getElementById('report-content');
+        if (!content) return;
+        const win = window.open('', '_blank', 'width=900,height=700');
+        win.document.write(`
+            <html><head><title>Zachi POS — Advanced Report</title>
+            <style>
+                body { font-family: sans-serif; padding: 24px; color: #1e293b; }
+                h1 { color: #1B3A5C; font-size: 1.4rem; }
+                table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+                th { background: #1B3A5C; color: #fff; padding: 7px 10px; text-align: left; font-size: 0.8rem; }
+                td { padding: 6px 10px; border-bottom: 1px solid #e2e8f0; font-size: 0.8rem; }
+                tr:nth-child(even) td { background: #f8fafc; }
+                .report-premium-card { border: 1px solid #e2e8f0; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+                @media print { body { margin: 0; } }
+            </style></head>
+            <body>
+                <div style="display:flex;align-items:center;gap:15px;margin-bottom:5px;">
+                    <img src="/logo.jpg" style="height:40px; border-radius:4px;" alt="Logo">
+                    <h1 style="margin:0;">Zachi Smart-POS — ${this.currentTab.charAt(0).toUpperCase() + this.currentTab.slice(1)} Report</h1>
+                </div>
+                <p style="color:#64748b;margin-top:0;">Period: ${this.dateRange.start} to ${this.dateRange.end}</p>
+                ${content.innerHTML}
+            </body></html > `);
+        win.document.close();
+        win.focus();
+        win.print();
+    },
+
+    downloadPdf() {
+        // Map current tab to a PDF type the backend understands
+        const typeMap = { sales: 'sales', trends: 'sales', financials: 'financials', stock: 'financials', insights: 'daily', 'profit-margin': 'financials' };
+        const pdfType = typeMap[this.currentTab] || 'daily';
+        const url = `/api/reports/pdf?type=${pdfType}&startDate=${this.dateRange.start}&endDate=${this.dateRange.end}`;
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `zachipos_${pdfType}_${this.dateRange.start}.pdf`;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
     }
 };
