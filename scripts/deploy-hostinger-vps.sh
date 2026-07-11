@@ -78,6 +78,27 @@ fi
 cd "$APP_DIR"
 mkdir -p logs
 
+if [[ -f "$APP_DIR/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$APP_DIR/.env"
+  set +a
+fi
+
+if [[ "${NODE_ENV:-production}" == "production" ]]; then
+  MISSING_ENV=()
+  for key in DATABASE_URL JWT_SECRET CORS_ORIGIN APP_BASE_URL; do
+    if [[ -z "${!key:-}" ]]; then
+      MISSING_ENV+=("$key")
+    fi
+  done
+  if (( ${#MISSING_ENV[@]} > 0 )); then
+    echo "Missing required production values in $APP_DIR/.env: ${MISSING_ENV[*]}"
+    echo "Add them, then rerun this script."
+    exit 1
+  fi
+fi
+
 echo "==> Installing production dependencies"
 npm ci --omit=dev --omit=optional
 
@@ -99,7 +120,8 @@ if [[ -n "$DB_DUMP" ]]; then
   echo "==> Stopping PM2 before database restore"
   pm2 stop "$PM2_APP" || true
   SANITIZED_DUMP="$BACKUP_DIR/restore-dump.sanitized.sql"
-  sed '/^SET transaction_timeout/d' "$DB_DUMP" > "$SANITIZED_DUMP"
+  perl -ne 'print unless /^\s*(SET transaction_timeout|COMMENT ON SCHEMA public|COMMENT ON EXTENSION|ALTER SCHEMA public OWNER TO|DROP EXTENSION)/' \
+    "$DB_DUMP" > "$SANITIZED_DUMP"
   echo "==> Restoring database dump: $DB_DUMP"
   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$SANITIZED_DUMP"
 else
