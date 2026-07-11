@@ -48,8 +48,19 @@ nginx -t
 echo "==> Reloading Nginx"
 systemctl reload nginx
 
+echo "==> PM2 status"
+pm2 status || true
+
+echo "==> Direct app health check"
+curl -fsS "http://127.0.0.1:$APP_PORT/api/health" || true
+echo
+
 echo "==> Local HTTPS health check through Nginx"
-curl -kfsS --resolve "$DOMAIN:443:127.0.0.1" "https://$DOMAIN/api/health"
+if ! curl -kfsS --resolve "$DOMAIN:443:127.0.0.1" "https://$DOMAIN/api/health"; then
+  echo
+  echo "Nginx could not proxy to the app. Recent Nginx errors:"
+  tail -n 40 /var/log/nginx/error.log || true
+fi
 echo
 
 echo "==> Public DNS records"
