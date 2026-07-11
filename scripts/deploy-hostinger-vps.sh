@@ -144,7 +144,7 @@ check_port_available() {
 }
 
 echo "==> Restarting PM2"
-APP_PORT="${PORT:-5000}"
+APP_PORT="${APP_PORT:-5000}"
 if pm2 describe "$PM2_APP" >/dev/null 2>&1; then
   pm2 stop "$PM2_APP" || true
 fi
@@ -158,6 +158,6 @@ pm2 save
 
 echo "==> Health check"
 sleep 3
-curl -fsS "http://127.0.0.1:${PORT:-5000}/api/health" || true
+curl -fsS "http://127.0.0.1:${APP_PORT:-5000}/api/health"
 echo
 echo "Deployment complete. Backups saved in $BACKUP_DIR"
