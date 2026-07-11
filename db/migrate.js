@@ -25,7 +25,8 @@ const RENAME_SHIM = {
 };
 
 function sha256(text) {
-    return crypto.createHash('sha256').update(text, 'utf8').digest('hex');
+    const normalized = text.replace(/\r\n/g, '\n');
+    return crypto.createHash('sha256').update(normalized, 'utf8').digest('hex');
 }
 
 const RECOVERED_CHECKSUM_ALIASES = {
