@@ -98,8 +98,10 @@ if [[ -n "$DB_DUMP" ]]; then
   fi
   echo "==> Stopping PM2 before database restore"
   pm2 stop "$PM2_APP" || true
+  SANITIZED_DUMP="$BACKUP_DIR/restore-dump.sanitized.sql"
+  sed '/^SET transaction_timeout/d' "$DB_DUMP" > "$SANITIZED_DUMP"
   echo "==> Restoring database dump: $DB_DUMP"
-  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$DB_DUMP"
+  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$SANITIZED_DUMP"
 else
   echo "==> No DB dump argument provided; keeping existing database"
 fi
