@@ -8,6 +8,7 @@ const ctrl = require('../controllers/cashController');
 
 router.get('/current', auth, ctrl.getCurrentSession);
 router.get('/history', auth, authorize('director'), ctrl.sessionHistory);
+router.get('/sessions', auth, authorize('director'), ctrl.sessionHistory);
 router.get('/history/:id', auth, ctrl.getSessionMovements);
 router.get('/eod/:id', auth, authorize('director'), ctrl.getEodReport);
 router.post('/open', auth, authorize('director', 'cashier'), idempotency(), auditLog('CASH_OPEN', 'cash_sessions'), ctrl.openSession);

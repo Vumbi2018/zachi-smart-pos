@@ -5,6 +5,7 @@ const authorize = require('../middleware/rbac');
 const idempotency = require('../middleware/idempotency');
 const ctrl = require('../controllers/loyaltyController');
 
+router.get('/', auth, ctrl.getLoyaltySummary);
 router.get('/tiers', auth, ctrl.listTiers);
 router.get('/customer/:id', auth, ctrl.getCustomerLoyalty);
 router.get('/credits/:customerId', auth, ctrl.getStoreCredits);

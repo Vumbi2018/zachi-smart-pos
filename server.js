@@ -339,6 +339,7 @@ app.use('/api/payments', require('./routes/payments'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/messaging', require('./routes/messaging'));
 app.get('/api/currency', require('./controllers/currencyController').getRates);
+app.get('/api/currency/rates', require('./controllers/currencyController').getRates);
 // Director-only endpoints to manage manual override rates.
 app.get(
     '/api/currency/overrides',
@@ -363,6 +364,7 @@ app.use('/api/quotes', require('./routes/quotes'));
 app.use('/api/invoices', require('./routes/invoices'));
 app.use('/api/loyalty', require('./routes/loyalty'));
 app.use('/api/pricing', require('./routes/pricing'));
+app.use('/api/promotions', require('./routes/promotions'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/approvals', require('./routes/approvals'));

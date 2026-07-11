@@ -5,6 +5,29 @@
 const pool = require('../db/pool');
 const { syncMeta } = require('../utils/syncMeta');
 
+
+/** GET /api/loyalty - Compact loyalty dashboard summary */
+async function getLoyaltySummary(req, res) {
+    try {
+        const [customers, points, credits, tiers] = await Promise.all([
+            pool.query('SELECT COUNT(*)::int AS count FROM customers'),
+            pool.query('SELECT COALESCE(SUM(loyalty_points), 0)::int AS total_points FROM customers'),
+            pool.query('SELECT COALESCE(SUM(balance), 0)::numeric AS total_balance FROM store_credits WHERE balance > 0'),
+            pool.query('SELECT * FROM loyalty_tiers ORDER BY min_points ASC')
+        ]);
+
+        res.json({
+            customer_count: customers.rows[0]?.count || 0,
+            total_points: points.rows[0]?.total_points || 0,
+            total_credit_balance: Number(credits.rows[0]?.total_balance || 0),
+            tiers: tiers.rows
+        });
+    } catch (err) {
+        console.error('Loyalty summary error:', err);
+        res.status(500).json({ error: 'Server error.' });
+    }
+}
+
 /** GET /api/loyalty/customer/:id — Get customer loyalty info */
 async function getCustomerLoyalty(req, res) {
     try {
@@ -192,4 +215,4 @@ async function manageTiers(req, res) {
     }
 }
 
-module.exports = { getCustomerLoyalty, earnPoints, redeemPoints, listTiers, getStoreCredits, manageTiers };
+module.exports = { getLoyaltySummary, getCustomerLoyalty, earnPoints, redeemPoints, listTiers, getStoreCredits, manageTiers };
