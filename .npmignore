@@ -1,0 +1,39 @@
+# Mirror .gitignore so deploy bundles never ship dev/secret artefacts.
+
+# Dependencies (re-installed via npm ci on the server)
+node_modules/
+
+# Secrets — NEVER ship
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+pm2-error.log
+pm2-out.log
+server_startup_log.txt
+service_log.txt
+startup_error.txt
+
+# Uploads & generated artifacts
+uploads/
+public/uploads/
+deploy.tar.gz
+*.tar.gz
+*.tgz
+
+# Local backups & ad-hoc helpers
+backups/
+*.bak
+*.tmp
+scripts/archive/
+
+# Tests / dev-only
+tests/
+.git/
+
+# OS / editor
+.DS_Store
+Thumbs.db

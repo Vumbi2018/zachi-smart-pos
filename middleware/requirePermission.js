@@ -1,36 +1,48 @@
-const pool = require('../db/pool');
+/**
+ * requirePermission.js
+ *
+ * Express middleware factory: requirePermission('invoice.send')
+ * checks the authenticated user's *effective* permission set
+ * (role defaults ∪ grants − denies) and 403's if the named permission
+ * isn't present. Director always passes.
+ *
+ * Falls back to a hard 403 on any resolver error so a database hiccup
+ * never opens up access by accident. Resolution failures are logged.
+ *
+ * NOTE: existing routes intentionally remain role-based (`authorize`).
+ * This middleware exists so new endpoints (and a few hand-picked old
+ * ones) can opt in to per-user override-aware checks WITHOUT a
+ * platform-wide migration.
+ */
+'use strict';
 
-// Middleware factory to check for a specific permission
-const requirePermission = (permissionName) => {
+const { resolveEffectivePermissions } = require('../services/userPermissions');
+
+function requirePermission(permName) {
+    if (!permName || typeof permName !== 'string') {
+        throw new Error('requirePermission(name) needs a non-empty permission name');
+    }
     return async (req, res, next) => {
+        if (!req.user) {
+            return res.status(401).json({ error: 'Authentication required.' });
+        }
+        // Director short-circuit. Lines up with the rest of the codebase:
+        // the role is treated as a super-user.
+        if (req.user.role === 'director') return next();
+
         try {
-            // If user is Director, they bypass checks (optional, but good for superadmin)
-            // Or we can just rely on the database having all permissions for 'director' role.
-            // Let's rely on DB to keep it uniform, but ensure Director has all perms in migration.
-
-            // However, for safety, if user.role === 'director', allow.
-            if (req.user.role === 'director') return next();
-
-            const { user_id, role } = req.user;
-
-            // Check if the user's role has the required permission
-            const result = await pool.query(`
-        SELECT 1 
-        FROM role_permissions rp
-        JOIN permissions p ON rp.permission_id = p.id
-        WHERE rp.role = $1 AND p.name = $2
-      `, [role, permissionName]);
-
-            if (result.rows.length > 0) {
-                next();
-            } else {
-                res.status(403).json({ error: 'Access denied: Insufficient permissions' });
-            }
-        } catch (err) {
-            console.error('Permission check error:', err);
-            res.status(500).json({ error: 'Server error checking permissions' });
+            const set = await resolveEffectivePermissions(null, req.user.user_id);
+            if (set.has(permName)) return next();
+            return res.status(403).json({
+                error: 'Access denied. Missing required permission.',
+                required: permName,
+                your_role: req.user.role,
+            });
+        } catch (e) {
+            console.error('[requirePermission] resolver failed:', e.message);
+            return res.status(500).json({ error: 'Permission resolver error.' });
         }
     };
-};
+}
 
 module.exports = requirePermission;

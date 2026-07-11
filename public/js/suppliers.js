@@ -8,7 +8,7 @@ const Suppliers = {
                     <h1 class="page-title">Suppliers</h1>
                     <p class="text-secondary">Manage vendors, price lists, and procurement history.</p>
                 </div>
-                <button class="btn btn-primary" onclick="Suppliers.openModal()">
+                <button class="btn btn-primary" data-on-click="Suppliers.openModal()">
                     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 5v14M5 12h14"/>
                     </svg>
@@ -18,7 +18,7 @@ const Suppliers = {
 
             <div class="card mb-6">
                 <div class="card-body">
-                    <input type="text" id="supplier-search" class="form-input" placeholder="Search suppliers..." oninput="Suppliers.filterSuppliers(this.value)">
+                    <input type="text" id="supplier-search" class="form-input" placeholder="Search suppliers..." data-on-input="Suppliers.filterSuppliers($value)">
                 </div>
             </div>
 
@@ -109,19 +109,19 @@ const Suppliers = {
         Utils.showModal(`
             <div class="modal-header">
                 <h2 class="modal-title">${isNew ? 'Add New Supplier' : 'Supplier Details'}</h2>
-                <button class="modal-close" onclick="Utils.closeModal()">&times;</button>
+                <button class="modal-close" data-on-click="Utils.closeModal()">&times;</button>
             </div>
             <div class="modal-body">
                 ${isNew ? '' : `
                 <div class="tabs mb-6">
-                    <button class="tab active" onclick="Suppliers.switchTab(this, 'details')">Details</button>
-                    <button class="tab" onclick="Suppliers.switchTab(this, 'pricelist')">Price List</button>
-                    <button class="tab" onclick="Suppliers.switchTab(this, 'history')">PO History</button>
+                    <button class="tab active" data-on-click="Suppliers.switchTab($el, 'details')">Details</button>
+                    <button class="tab" data-on-click="Suppliers.switchTab($el, 'pricelist')">Price List</button>
+                    <button class="tab" data-on-click="Suppliers.switchTab($el, 'history')">PO History</button>
                 </div>
                 `}
 
                 <div id="tab-details" class="tab-content active">
-                    <form id="supplier-form" onsubmit="Suppliers.save(event, '${id || ''}')">
+                    <form id="supplier-form" data-on-submit="Suppliers.save($event, '${id || ''}')">
                         <div class="grid grid-cols-2 gap-4">
                             <div class="form-group col-span-2">
                                 <label>Company Name</label>
@@ -168,7 +168,7 @@ const Suppliers = {
                             </div>
                         </div>
                         <div class="modal-footer">
-                            ${!isNew ? `<button type="button" class="btn btn-danger mr-auto" onclick="Suppliers.delete('${id}')">Deactivate</button>` : ''}
+                            ${!isNew ? `<button type="button" class="btn btn-danger mr-auto" data-on-click="Suppliers.delete('${id}')">Deactivate</button>` : ''}
                             <button type="submit" class="btn btn-primary">Save Changes</button>
                         </div>
                     </form>
@@ -177,7 +177,7 @@ const Suppliers = {
                 <div id="tab-pricelist" class="tab-content hidden">
                     <div class="flex justify-between items-center mb-4">
                         <h3>Price List</h3>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="Suppliers.addPriceItem('${id}')">+ Add Product</button>
+                        <button type="button" class="btn btn-sm btn-outline" data-on-click="Suppliers.addPriceItem('${id}')">+ Add Product</button>
                     </div>
                     <div class="table-container">
                         <table class="table w-full">
@@ -237,7 +237,7 @@ const Suppliers = {
                 <td>${item.minimum_order_qty || 1}</td>
                 <td>${item.lead_time_days || '-'} days</td>
                 <td>
-                    <button class="btn-icon text-red-500" onclick="Suppliers.removePriceItem('${item.supplier_id}', '${item.product_id}')" title="Remove">
+                    <button class="btn-icon text-red-500" data-on-click="Suppliers.removePriceItem('${item.supplier_id}', '${item.product_id}')" title="Remove">
                         &times;
                     </button>
                 </td>
@@ -301,7 +301,7 @@ const Suppliers = {
         Utils.showModal(`
             <div class="modal-header">
                 <h3>Add Product to Price List</h3>
-                <button class="modal-close" onclick="Utils.closeModal()">✕</button>
+                <button class="modal-close" data-on-click="Utils.closeModal()">✕</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -314,8 +314,8 @@ const Suppliers = {
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-outline" onclick="Utils.closeModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="Suppliers._submitPriceItem('${supplierId}')">Add</button>
+                <button class="btn btn-outline" data-on-click="Utils.closeModal()">Cancel</button>
+                <button class="btn btn-primary" data-on-click="Suppliers._submitPriceItem('${supplierId}')">Add</button>
             </div>
         `);
     },
@@ -357,3 +357,6 @@ const Suppliers = {
         }
     }
 };
+
+// Expose to global scope for delegated event handlers (data-on-* attributes).
+window.Suppliers = Suppliers;

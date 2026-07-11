@@ -3,14 +3,36 @@
  */
 const Utils = {
     /**
-     * Format currency (Zambian Kwacha)
+     * Format currency. Defaults to Zambian Kwacha ('K '). Pass a different
+     * symbol (e.g. '$', '£', '€', 'R') to format other currencies.
      */
-    currency(amount) {
-        return 'K ' + parseFloat(amount || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    currency(amount, symbol) {
+        const sym = symbol == null ? 'K' : String(symbol);
+        const num = parseFloat(amount || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        return `${sym} ${num}`;
     },
 
-    formatCurrency(amount) {
-        return this.currency(amount);
+    formatCurrency(amount, symbol) {
+        return this.currency(amount, symbol);
+    },
+
+    /**
+     * HTML-escape a string before interpolating it into innerHTML. Without
+     * this, fields that come back from the database (customer names, notes,
+     * store metadata, etc.) can inject markup — and because this app uses
+     * `data-on-*` delegated handlers, an attacker-controlled `data-on-click`
+     * would fire on the next click anywhere in the modal.
+     *
+     * Safe to call with `null`/`undefined`/numbers — always returns a string.
+     */
+    escapeHtml(value) {
+        if (value === null || value === undefined) return '';
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     },
 
     /**
@@ -236,7 +258,7 @@ const Utils = {
      * Get current user from localStorage
      */
     getUser() {
-        const data = localStorage.getItem('zspos_user');
+        const data = sessionStorage.getItem('zspos_user');
         return data ? JSON.parse(data) : null;
     },
 
@@ -269,3 +291,6 @@ const Utils = {
 document.getElementById('modal-overlay')?.addEventListener('click', (e) => {
     if (e.target === e.currentTarget) Utils.closeModal();
 });
+
+// Expose to global scope for delegated event handlers (data-on-* attributes).
+window.Utils = Utils;

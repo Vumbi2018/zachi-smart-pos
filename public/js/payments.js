@@ -6,7 +6,7 @@ const Payments = {
                     <h1 class="page-title">Payment Methods</h1>
                     <p class="text-secondary">Manage accepted payment types and configurations.</p>
                 </div>
-                <button class="btn btn-primary" onclick="Payments.showModal()">
+                <button class="btn btn-primary" data-on-click="Payments.showModal()">
                     + Add Method
                 </button>
             </div>
@@ -56,10 +56,10 @@ const Payments = {
                     </td>
                     <td>
                         <div class="flex gap-2">
-                            <button class="btn btn-sm btn-outline" onclick="Payments.showModal(${p.id})">Edit</button>
+                            <button class="btn btn-sm btn-outline" data-on-click="Payments.showModal(${p.id})">Edit</button>
                             ${p.is_active
-                    ? `<button class="btn btn-sm btn-outline-danger" onclick="Payments.toggleStatus(${p.id}, false)">Deactivate</button>`
-                    : `<button class="btn btn-sm btn-outline-success" onclick="Payments.toggleStatus(${p.id}, true)">Activate</button>`
+                    ? `<button class="btn btn-sm btn-outline-danger" data-on-click="Payments.toggleStatus(${p.id}, false)">Deactivate</button>`
+                    : `<button class="btn btn-sm btn-outline-success" data-on-click="Payments.toggleStatus(${p.id}, true)">Activate</button>`
                 }
                         </div>
                     </td>
@@ -104,7 +104,7 @@ const Payments = {
                 </div>
 
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="Utils.closeModal()">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-on-click="Utils.closeModal()">Cancel</button>
                     <button type="submit" class="btn btn-primary">${isEdit ? 'Update' : 'Create'}</button>
                 </div>
             </form>
@@ -113,7 +113,7 @@ const Payments = {
         Utils.showModal(`
             <div class="modal-header">
                 <h3>${isEdit ? 'Edit Payment Method' : 'New Payment Method'}</h3>
-                <button class="modal-close" onclick="Utils.closeModal()">&times;</button>
+                <button class="modal-close" data-on-click="Utils.closeModal()">&times;</button>
             </div>
             <div class="modal-body">
                 ${content}
@@ -163,3 +163,6 @@ const Payments = {
         }
     }
 };
+
+// Expose to global scope for delegated event handlers (data-on-* attributes).
+window.Payments = Payments;

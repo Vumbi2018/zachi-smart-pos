@@ -1,0 +1,12 @@
+/* Standard reports — print window stylesheet (reports.js).
+   Loaded externally so the print window does not need style-src 'unsafe-inline'. */
+body { font-family: sans-serif; padding: 20px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; }
+th { background: #1B3A5C; color: #fff; }
+h2 { color: #1B3A5C; }
+.stats-grid { display: flex; gap: 1rem; margin-bottom: 1rem; }
+.stat-card { flex: 1; border: 1px solid #ddd; padding: 1rem; border-radius: 6px; text-align: center; }
+.card-value { font-size: 1.4rem; font-weight: bold; }
+.card { border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; border-radius: 6px; }
+@media print { body { margin: 0; } }

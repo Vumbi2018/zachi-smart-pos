@@ -8,11 +8,35 @@ async function createPromotion(req, res) {
     try {
         const { name, description, discount_type, discount_value, min_purchase, applies_to, applies_to_id, start_date, end_date } = req.body;
 
+        if (!name || !String(name).trim()) {
+            return res.status(400).json({ error: 'Promotion name is required.' });
+        }
+        if (!discount_type || !['percentage', 'fixed_amount', 'buy_x_get_y'].includes(String(discount_type))) {
+            return res.status(400).json({ error: 'discount_type must be one of percentage, fixed_amount, buy_x_get_y.' });
+        }
+        const dv = Number(discount_value);
+        if (!Number.isFinite(dv) || dv < 0) {
+            return res.status(400).json({ error: 'discount_value must be a non-negative number.' });
+        }
+
+        // Coerce blank values to NULL so empty/whitespace strings don't
+        // hit typed columns (applies_to_id, dates).
+        const isBlank = (v) => v == null || (typeof v === 'string' && v.trim() === '');
+        const cleanAppliesTo = isBlank(applies_to) ? 'all' : String(applies_to).trim();
+        const cleanAppliesToId =
+            cleanAppliesTo === 'all' || isBlank(applies_to_id)
+                ? null
+                : (typeof applies_to_id === 'string' ? applies_to_id.trim() : applies_to_id);
+        const cleanStart = isBlank(start_date) ? null : String(start_date).trim();
+        const cleanEnd   = isBlank(end_date)   ? null : String(end_date).trim();
+        const cleanDesc  = isBlank(description) ? null : String(description).trim();
+        const cleanMin   = isBlank(min_purchase) ? 0 : (Number(min_purchase) || 0);
+
         const result = await pool.query(
             `INSERT INTO promotions (name, description, discount_type, discount_value, min_purchase, applies_to, applies_to_id, start_date, end_date, created_by)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
              RETURNING *`,
-            [name, description, discount_type, discount_value, min_purchase || 0, applies_to, applies_to_id, start_date, end_date, req.user.user_id]
+            [String(name).trim(), cleanDesc, discount_type, dv, cleanMin, cleanAppliesTo, cleanAppliesToId, cleanStart, cleanEnd, req.user.user_id]
         );
 
         res.status(201).json(result.rows[0]);

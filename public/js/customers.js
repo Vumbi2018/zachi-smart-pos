@@ -7,10 +7,10 @@ const Customers = {
       <div class="page-header">
         <h2>👥 Customers</h2>
         <div class="header-actions">
-          <button class="btn btn-outline" onclick="Customers.downloadTemplate()" title="Download CSV Template">📄 Template</button>
-          <button class="btn btn-outline" onclick="Customers.exportCustomers()">⬇️ Export</button>
-          <button class="btn btn-outline" onclick="Customers.triggerImport()">⬆️ Import</button>
-          <input type="file" id="cust-import-input" accept=".csv" class="hidden" onchange="Customers.handleFileSelect(event)">
+          <button class="btn btn-outline" data-on-click="Customers.downloadTemplate()" title="Download CSV Template">📄 Template</button>
+          <button class="btn btn-outline" data-on-click="Customers.exportCustomers()">⬇️ Export</button>
+          <button class="btn btn-outline" data-on-click="Customers.triggerImport()">⬆️ Import</button>
+          <input type="file" id="cust-import-input" accept=".csv" class="hidden" data-on-change="Customers.handleFileSelect($event)">
           <button class="btn btn-primary" id="btn-add-customer">+ Add Customer</button>
         </div>
       </div>
@@ -21,18 +21,9 @@ const Customers = {
 
       <div class="table-container">
         <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Phone</th>
-              <th>Email</th>
-              <th>Company</th>
-              <th>Type</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
+          <thead id="cust-thead"><!-- populated by loadCustomers() --></thead>
           <tbody id="cust-table-body">
-            <tr><td colspan="6" class="text-center text-muted" style="padding:2rem;">Loading...</td></tr>
+            <tr><td colspan="6" class="text-center text-muted" data-style="padding:2rem;">Loading...</td></tr>
           </tbody>
         </table>
       </div>
@@ -43,32 +34,68 @@ const Customers = {
     await this.loadCustomers();
   },
 
+  // Lazy-init the sortable controller; defaults to A→Z by name.
+  _ensureSorter() {
+    if (this._sorter) return this._sorter;
+    this._sorter = Sortable.create({
+      defaultKey: 'full_name',
+      defaultDir: 'asc',
+      onChange: () => this._renderRows(this._lastCustomers || []),
+    });
+    return this._sorter;
+  },
+
   async loadCustomers() {
     try {
       const search = document.getElementById('cust-search').value;
       const data = await API.get(`/customers?search=${encodeURIComponent(search)}`);
-      const tbody = document.getElementById('cust-table-body');
-
-      if (!data.customers.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:2rem;">No customers found</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = data.customers.map(c => `
-        <tr>
-          <td><strong>${c.full_name}</strong></td>
-          <td>${c.phone || '—'}</td>
-          <td>${c.email || '—'}</td>
-          <td>${c.company_name || '—'}</td>
-          <td><span class="badge badge-${c.customer_type === 'corporate' ? 'info' : c.customer_type === 'regular' ? 'success' : 'neutral'}">${c.customer_type}</span></td>
-          <td>
-            <button class="btn btn-ghost btn-sm" onclick="Customers.showCustomerModal(${c.customer_id})" title="Edit">✏️</button>
-          </td>
-        </tr>
-      `).join('');
+      this._lastCustomers = data.customers || [];
+      this._renderRows(this._lastCustomers);
     } catch (err) {
       Utils.toast('Failed to load customers', 'error');
     }
+  },
+
+  _renderRows(customers) {
+    const sort = this._ensureSorter();
+    const thead = document.getElementById('cust-thead');
+    const tbody = document.getElementById('cust-table-body');
+
+    if (thead) {
+      thead.innerHTML = `
+        <tr>
+          ${sort.header('Name',    'full_name')}
+          ${sort.header('Phone',   'phone')}
+          ${sort.header('Email',   'email')}
+          ${sort.header('Company', 'company_name')}
+          ${sort.header('Type',    'customer_type')}
+          <th>Actions</th>
+        </tr>`;
+      sort.bind(thead);
+    }
+
+    if (!customers.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" data-style="padding:2rem;">No customers found</td></tr>';
+      return;
+    }
+
+    // customer_id is a UUID — must be string-quoted in inline handlers.
+    // Whole row opens the customer modal (view + edit). Inner action buttons
+    // win automatically because the delegation dispatcher fires the FIRST
+    // ancestor with data-on-click (inner-first walk), so no stopPropagation
+    // is needed on the edit button.
+    tbody.innerHTML = sort.apply(customers).map(c => `
+      <tr class="clickable-row" data-on-click="Customers.showCustomerModal(${JSON.stringify(c.customer_id)})" title="View customer">
+        <td><strong>${c.full_name}</strong></td>
+        <td>${c.phone || '—'}</td>
+        <td>${c.email || '—'}</td>
+        <td>${c.company_name || '—'}</td>
+        <td><span class="badge badge-${c.customer_type === 'corporate' ? 'info' : c.customer_type === 'regular' ? 'success' : 'neutral'}">${c.customer_type}</span></td>
+        <td>
+          <button class="btn btn-ghost btn-sm" data-on-click="Customers.showCustomerModal(${JSON.stringify(c.customer_id)})" title="Edit">✏️</button>
+        </td>
+      </tr>
+    `).join('');
   },
 
   async showCustomerModal(customerId) {
@@ -82,7 +109,7 @@ const Customers = {
     Utils.showModal(`
       <div class="modal-header">
         <h3>${isEdit ? '✏️ Edit Customer' : '+ New Customer'}</h3>
-        <button class="modal-close" onclick="Utils.closeModal()">✕</button>
+        <button class="modal-close" data-on-click="Utils.closeModal()">✕</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
@@ -123,7 +150,7 @@ const Customers = {
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="Utils.closeModal()">Cancel</button>
+        <button class="btn btn-secondary" data-on-click="Utils.closeModal()">Cancel</button>
         <button class="btn btn-primary" id="btn-save-customer">${isEdit ? 'Update' : 'Create'}</button>
       </div>
     `);
@@ -240,3 +267,6 @@ const Customers = {
     }
   }
 };
+
+// Expose to global scope for delegated event handlers (data-on-* attributes).
+window.Customers = Customers;

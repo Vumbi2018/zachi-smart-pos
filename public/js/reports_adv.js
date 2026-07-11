@@ -7,6 +7,17 @@ const ReportsAdv = {
     },
 
     async render(container) {
+        // Task #61 — honour a deep-link from the dashboard's line-removal
+        // outliers tile: { tab: 'line-removals', staffId: '<uuid>' }.
+        // We consume it here (one-shot) so a later manual nav doesn't
+        // re-apply a stale filter.
+        if (typeof window !== 'undefined' && window.__lrDeepLink) {
+            const dl = window.__lrDeepLink;
+            window.__lrDeepLink = null;
+            if (dl && dl.tab) this.currentTab = dl.tab;
+            if (dl && 'staffId' in dl) this.lrStaffId = dl.staffId || '';
+        }
+
         container.innerHTML = `
             <div class="report-page-header">
                 <div>
@@ -15,32 +26,33 @@ const ReportsAdv = {
                 </div>
                 <div class="flex gap-3 items-center">
                     <div class="input-group flex items-center gap-2 bg-slate-50 p-1.5 rounded-lg border border-slate-200">
-                        <input type="date" id="report-start" class="form-input py-1 border-none bg-transparent" value="\${this.dateRange.start}" onchange="ReportsAdv.updateDate('start', this.value)">
+                        <input type="date" id="report-start" class="form-input py-1 border-none bg-transparent" value="\${this.dateRange.start}" data-on-change="ReportsAdv.updateDate('start', $value)">
                         <span class="text-slate-400 font-medium px-2">to</span>
-                        <input type="date" id="report-end" class="form-input py-1 border-none bg-transparent" value="\${this.dateRange.end}" onchange="ReportsAdv.updateDate('end', this.value)">
+                        <input type="date" id="report-end" class="form-input py-1 border-none bg-transparent" value="\${this.dateRange.end}" data-on-change="ReportsAdv.updateDate('end', $value)">
                     </div>
-                    <button class="btn btn-primary shadow-lg shadow-blue-500/30" onclick="ReportsAdv.refresh()">
+                    <button class="btn btn-primary shadow-lg shadow-blue-500/30" data-on-click="ReportsAdv.refresh()">
                         <i class="fas fa-sync-alt mr-2"></i> Update
                     </button>
-                    <button class="btn btn-outline border-slate-300 text-slate-600 hover:bg-slate-50" onclick="ReportsAdv.exportCurrent()">
+                    <button class="btn btn-outline border-slate-300 text-slate-600 hover:bg-slate-50" data-on-click="ReportsAdv.exportCurrent()">
                         <i class="fas fa-file-csv mr-2"></i> Export CSV
                     </button>
-                    <button class="btn btn-outline border-slate-300 text-slate-600 hover:bg-slate-50" onclick="ReportsAdv.printCurrent()">
+                    <button class="btn btn-outline border-slate-300 text-slate-600 hover:bg-slate-50" data-on-click="ReportsAdv.printCurrent()">
                         🖨️ Print
                     </button>
-                    <button class="btn btn-outline border-slate-300 text-slate-600 hover:bg-slate-50" onclick="ReportsAdv.downloadPdf()">
+                    <button class="btn btn-outline border-slate-300 text-slate-600 hover:bg-slate-50" data-on-click="ReportsAdv.downloadPdf()">
                         📄 PDF
                     </button>
                 </div>
             </div>
 
             <div class="premium-tabs mb-6">
-                <button class="premium-tab active" onclick="ReportsAdv.switchTab('sales', this)">Sales Analysis</button>
-                <button class="premium-tab" onclick="ReportsAdv.switchTab('trends', this)">Sales Trends</button>
-                <button class="premium-tab" onclick="ReportsAdv.switchTab('insights', this)">Business Insights</button>
-                <button class="premium-tab" onclick="ReportsAdv.switchTab('stock', this)">Stock & Valuation</button>
-                <button class="premium-tab" onclick="ReportsAdv.switchTab('financials', this)">Financials & Tax</button>
-                <button class="premium-tab" onclick="ReportsAdv.switchTab('profit-margin', this)">Profit Margin</button>
+                <button class="premium-tab ${this.currentTab === 'sales' ? 'active' : ''}" data-on-click="ReportsAdv.switchTab('sales',$el)">Sales Analysis</button>
+                <button class="premium-tab ${this.currentTab === 'trends' ? 'active' : ''}" data-on-click="ReportsAdv.switchTab('trends',$el)">Sales Trends</button>
+                <button class="premium-tab ${this.currentTab === 'insights' ? 'active' : ''}" data-on-click="ReportsAdv.switchTab('insights',$el)">Business Insights</button>
+                <button class="premium-tab ${this.currentTab === 'stock' ? 'active' : ''}" data-on-click="ReportsAdv.switchTab('stock',$el)">Stock & Valuation</button>
+                <button class="premium-tab ${this.currentTab === 'financials' ? 'active' : ''}" data-on-click="ReportsAdv.switchTab('financials',$el)">Financials & Tax</button>
+                <button class="premium-tab ${this.currentTab === 'profit-margin' ? 'active' : ''}" data-on-click="ReportsAdv.switchTab('profit-margin',$el)">Profit Margin</button>
+                <button class="premium-tab ${this.currentTab === 'line-removals' ? 'active' : ''}" data-on-click="ReportsAdv.switchTab('line-removals',$el)">Line Removals</button>
             </div>
 
             <div id="report-content" class="report-page-bg">
@@ -79,6 +91,7 @@ const ReportsAdv = {
             else if (this.currentTab === 'stock') await this.renderStock(content);
             else if (this.currentTab === 'financials') await this.renderFinancials(content);
             else if (this.currentTab === 'profit-margin') await this.renderProfitMargin(content);
+            else if (this.currentTab === 'line-removals') await this.renderLineRemovals(content);
         } catch (err) {
             console.error(err);
             content.innerHTML = `<div class="p-8 text-center text-red-600">Error loading report: ${err.message}</div>`;
@@ -187,7 +200,7 @@ const ReportsAdv = {
             <div class="report-grid-2">
     <div class="report-premium-card">
         <div class="report-metric-label">Total Stock Value (Cost)</div>
-        <div class="report-metric-value" style="background: linear-gradient(135deg, #2563eb, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">${Utils.formatCurrency(valuation.total_cost_value)}</div>
+        <div class="report-metric-value" data-style="background: linear-gradient(135deg, #2563eb, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">${Utils.formatCurrency(valuation.total_cost_value)}</div>
         <div class="text-sm mt-2 text-slate-500 font-semibold">Retail Value: ${Utils.formatCurrency(valuation.total_retail_value)}</div>
     </div>
     <div class="report-premium-card">
@@ -242,7 +255,7 @@ const ReportsAdv = {
             <tbody>
                 <tr><td class="text-slate-500">Total Revenue (excl. tax)</td><td class="text-right font-bold text-lg">${Utils.formatCurrency(financials.revenue)}</td></tr>
                 <tr><td class="text-red-500">Cost of Goods Sold (COGS)</td><td class="text-right text-red-500">- ${Utils.formatCurrency(financials.cogs)}</td></tr>
-                <tr style="background-color: #f8fafc;"><td class="font-bold text-slate-800 border-none">Gross Profit</td><td class="text-right font-bold text-lg border-none">${Utils.formatCurrency(financials.gross_profit)}</td></tr>
+                <tr data-style="background-color: #f8fafc;"><td class="font-bold text-slate-800 border-none">Gross Profit</td><td class="text-right font-bold text-lg border-none">${Utils.formatCurrency(financials.gross_profit)}</td></tr>
                 <tr><td class="text-red-500">Operating Expenses</td><td class="text-right text-red-500">- ${Utils.formatCurrency(financials.expenses)}</td></tr>
                 <tr>
                     <td class="font-bold text-slate-800 text-lg border-none">NET PROFIT</td>
@@ -305,7 +318,7 @@ const ReportsAdv = {
             <div class="report-premium-card p-0">
                 <div class="report-header px-6 pt-6 mb-0 border-none flex justify-between items-center">
                     <h3 class="report-header-title">Profit Margin Details</h3>
-                    <select class="form-input py-1.5 px-3 text-sm font-medium bg-slate-50 border-slate-200 rounded-lg text-slate-700 focus:ring-blue-500 focus:border-blue-500" onchange="ReportsAdv.pmGroupBy = this.value; ReportsAdv.loadCurrentTab()">
+                    <select class="form-input py-1.5 px-3 text-sm font-medium bg-slate-50 border-slate-200 rounded-lg text-slate-700 focus:ring-blue-500 focus:border-blue-500" data-on-change="ReportsAdv.setPmGroupBy($value)">
                         <option value="category" ${groupBy === 'category' ? 'selected' : ''}>Group by Category</option>
                         <option value="product" ${groupBy === 'product' ? 'selected' : ''}>Group by Product</option>
                     </select>
@@ -357,7 +370,7 @@ const ReportsAdv = {
             <div class="report-premium-card p-0 mb-6">
     <div class="report-header px-6 pt-6 mb-0 border-none">
         <h3 class="report-header-title">Sales Trends (${type.toUpperCase()})</h3>
-        <select class="form-input py-1.5 px-3 text-sm font-medium bg-slate-50 border-slate-200 rounded-lg text-slate-700 focus:ring-blue-500 focus:border-blue-500" onchange="ReportsAdv.aggType = this.value; ReportsAdv.loadCurrentTab()">
+        <select class="form-input py-1.5 px-3 text-sm font-medium bg-slate-50 border-slate-200 rounded-lg text-slate-700 focus:ring-blue-500 focus:border-blue-500" data-on-change="ReportsAdv.setAggType($value)">
             <option value="day" ${type === 'day' ? 'selected' : ''}>Daily</option>
             <option value="week" ${type === 'week' ? 'selected' : ''}>Weekly</option>
             <option value="month" ${type === 'month' ? 'selected' : ''}>Monthly</option>
@@ -365,7 +378,7 @@ const ReportsAdv = {
             <option value="year" ${type === 'year' ? 'selected' : ''}>Annual</option>
         </select>
     </div>
-    <div id="sales-chart" class="px-2" style="min-height: 350px;"></div>
+    <div id="sales-chart" class="px-2" data-style="min-height: 350px;"></div>
 </div>
 
             <div class="report-premium-card p-0">
@@ -441,13 +454,8 @@ const ReportsAdv = {
             }
         };
 
-        if (typeof ApexCharts !== 'undefined') {
-            const chart = new ApexCharts(document.querySelector("#sales-chart"), options);
-            chart.render();
-        } else {
-            const chartEl = document.querySelector("#sales-chart");
-            if (chartEl) chartEl.innerHTML = '<div class="p-8 text-center text-slate-400">Chart library failed to load. Please ensure <code>apexcharts.min.js</code> is in <code>/public/js/lib/</code></div>';
-        }
+        const chart = new ApexCharts(document.querySelector("#sales-chart"), options);
+        chart.render();
 
         this.currentData = data;
     },
@@ -526,7 +534,7 @@ const ReportsAdv = {
 <div class="report-premium-card p-0">
     <div class="report-header px-6 pt-6"><h3 class="report-header-title">Hourly Sales Activity</h3></div>
     <div class="px-2 pb-6">
-                        <div id="hourly-chart" style="min-height: 250px;"></div>
+                        <div id="hourly-chart" data-style="min-height: 250px;"></div>
                     </div>
                 </div>
             </div>
@@ -550,6 +558,126 @@ const ReportsAdv = {
         const hChart = new ApexCharts(document.querySelector("#hourly-chart"), hourlyOptions);
 
         this.currentData = staff;
+    },
+
+    /**
+     * Task #58 — "Line Removals" audit report.
+     * Lists every soft-removed sale_items row (per-line refund) in the
+     * current date range, optionally filtered by the cashier/director
+     * who removed it, with count + total-refunded + by-tender footer.
+     */
+    async renderLineRemovals(container) {
+        // Lazy-load and cache the staff list once per page-view. We
+        // populate the filter from /users so directors can drill into a
+        // single cashier's removals. Failures shouldn't block the report
+        // itself — we just fall back to "All staff".
+        if (!this._staffList) {
+            try {
+                const users = await API.get('/users');
+                this._staffList = Array.isArray(users) ? users : (users.users || []);
+            } catch (e) {
+                this._staffList = [];
+            }
+        }
+        const staffId = this.lrStaffId || '';
+        const qs = `startDate=${this.dateRange.start}&endDate=${this.dateRange.end}`
+            + (staffId ? `&staffId=${encodeURIComponent(staffId)}` : '');
+        const data = await API.get(`/reports/line-removals?${qs}`);
+
+        const rows    = data.rows || [];
+        const totals  = data.totals || { count: 0, refunded: 0, by_tender: [] };
+        // All DB-derived strings (payment_method, description,
+        // removed_reason, removed_by_name, staff full_name/role) flow
+        // through Utils.escapeHtml before being interpolated into
+        // innerHTML — these fields are director-entered free text and
+        // would otherwise be a stored-XSS vector.
+        const esc = (v) => Utils.escapeHtml(v == null ? '' : String(v));
+        const tenderRows = (totals.by_tender || []).map(t => `
+            <div data-style="display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px solid var(--border,#e5e7eb);">
+                <span>${esc((t.payment_method || '—').replace('_', ' '))}</span>
+                <span><strong>${Utils.formatCurrency(t.refunded)}</strong>
+                    <span class="text-slate-400" data-style="font-size:0.75rem;margin-left:0.5rem;">(${t.count})</span></span>
+            </div>`).join('') || '<div class="text-slate-400 text-sm">No refunds in this period.</div>';
+
+        container.innerHTML = `
+            <div class="report-grid-3 mb-6">
+                <div class="report-premium-card">
+                    <div class="report-metric-label">Lines Removed</div>
+                    <div class="report-metric-value">${totals.count}</div>
+                </div>
+                <div class="report-premium-card">
+                    <div class="report-metric-label">Total Refunded</div>
+                    <div class="report-metric-value text-red-600">${Utils.formatCurrency(totals.refunded)}</div>
+                </div>
+                <div class="report-premium-card">
+                    <div class="report-metric-label">Refunds by Tender</div>
+                    <div data-style="margin-top:0.5rem;">${tenderRows}</div>
+                </div>
+            </div>
+
+            <div class="report-premium-card p-0">
+                <div class="report-header px-6 pt-6 mb-0 border-none flex justify-between items-center">
+                    <h3 class="report-header-title">Removed Lines</h3>
+                    <select class="form-input py-1.5 px-3 text-sm font-medium bg-slate-50 border-slate-200 rounded-lg text-slate-700"
+                            data-on-change="ReportsAdv.setLrStaff($value)">
+                        <option value="">All staff &amp; directors</option>
+                        ${this._staffList.map(u => `
+                            <option value="${esc(u.user_id)}" ${staffId === u.user_id ? 'selected' : ''}>
+                                ${esc(u.full_name)}${u.role ? ` (${esc(u.role)})` : ''}
+                            </option>`).join('')}
+                    </select>
+                </div>
+                <div class="report-table-wrapper mx-6 mb-6">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Sale #</th>
+                                <th>Line</th>
+                                <th class="text-right">Qty × Price</th>
+                                <th class="text-right">Refund</th>
+                                <th>Removed By</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.map(r => `
+                                <tr>
+                                    <td>${esc(new Date(r.removed_at).toLocaleString())}</td>
+                                    <td class="font-medium">${esc(r.sale_number || r.sale_id)}</td>
+                                    <td>${esc(r.description || '—')}</td>
+                                    <td class="text-right">${esc(r.quantity)} × ${Utils.formatCurrency(r.unit_price)}</td>
+                                    <td class="text-right text-red-600 font-bold">${Utils.formatCurrency(r.refund_amount)}</td>
+                                    <td>${esc(r.removed_by_name || '—')}</td>
+                                    <td class="text-slate-500">${esc(r.removed_reason || '')}</td>
+                                </tr>
+                            `).join('') || `
+                                <tr><td colspan="7" class="text-center py-8 text-slate-400">
+                                    No line removals in this period.
+                                </td></tr>`}
+                        </tbody>
+                        ${rows.length ? `
+                        <tfoot>
+                            <tr data-style="background-color:#f8fafc;font-weight:700;">
+                                <td colspan="4" class="text-right">Total (${totals.count} lines)</td>
+                                <td class="text-right text-red-600">${Utils.formatCurrency(totals.refunded)}</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>` : ''}
+                    </table>
+                </div>
+            </div>
+        `;
+
+        // Stash the full payload so exportCurrent() can build a CSV
+        // that mirrors what's on screen (rows + the by-tender footer).
+        this.currentData = { rows, totals };
+    },
+
+    /** Staff filter selector for the Line Removals tab. */
+    setLrStaff(value) {
+        this.lrStaffId = value || '';
+        this.loadCurrentTab();
     },
 
     exportCurrent() {
@@ -592,6 +720,24 @@ const ReportsAdv = {
                 csv += `"Net Profit", ${parseFloat(fin.net_profit || 0).toFixed(2)} \n`;
             }
             if (tax) csv += `"VAT Collected", ${parseFloat(tax.tax_collected || 0).toFixed(2)} \n`;
+        } else if (this.currentTab === 'line-removals') {
+            const payload = this.currentData || { rows: [], totals: { count: 0, refunded: 0, by_tender: [] } };
+            csv = 'Removed At,Sale #,Line,Qty,Unit Price,Refund,Removed By,Reason,Tender\n';
+            (payload.rows || []).forEach(r => {
+                const t = new Date(r.removed_at).toISOString();
+                const reason = (r.removed_reason || '').replace(/"/g, '""');
+                const desc   = (r.description    || '').replace(/"/g, '""');
+                const who    = (r.removed_by_name|| '').replace(/"/g, '""');
+                csv += `"${t}","${r.sale_number || r.sale_id}","${desc}",${r.quantity},${parseFloat(r.unit_price).toFixed(2)},${parseFloat(r.refund_amount).toFixed(2)},"${who}","${reason}","${r.payment_method || ''}"\n`;
+            });
+            // Footer block — totals + by-tender breakdown so the export
+            // matches what the director sees on screen.
+            csv += `\nTotals,,,,,${parseFloat(payload.totals.refunded || 0).toFixed(2)},,,\n`;
+            csv += `Lines Removed,${payload.totals.count}\n\n`;
+            csv += 'Tender,Count,Refunded\n';
+            (payload.totals.by_tender || []).forEach(t => {
+                csv += `"${t.payment_method || ''}",${t.count},${parseFloat(t.refunded).toFixed(2)}\n`;
+            });
         } else if (this.currentTab === 'profit-margin') {
             const isProduct = this.pmGroupBy === 'product';
             if (isProduct) {
@@ -633,24 +779,15 @@ const ReportsAdv = {
         const content = document.getElementById('report-content');
         if (!content) return;
         const win = window.open('', '_blank', 'width=900,height=700');
+        // Stylesheet loaded externally so the print window does not need
+        // style-src 'unsafe-inline' (Task #7).
         win.document.write(`
             <html><head><title>Zachi POS — Advanced Report</title>
-            <style>
-                body { font-family: sans-serif; padding: 24px; color: #1e293b; }
-                h1 { color: #1B3A5C; font-size: 1.4rem; }
-                table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-                th { background: #1B3A5C; color: #fff; padding: 7px 10px; text-align: left; font-size: 0.8rem; }
-                td { padding: 6px 10px; border-bottom: 1px solid #e2e8f0; font-size: 0.8rem; }
-                tr:nth-child(even) td { background: #f8fafc; }
-                .report-premium-card { border: 1px solid #e2e8f0; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
-                @media print { body { margin: 0; } }
-            </style></head>
+            <link rel="stylesheet" href="${location.origin}/css/print-report-adv.css">
+            </head>
             <body>
-                <div style="display:flex;align-items:center;gap:15px;margin-bottom:5px;">
-                    <img src="/logo.jpg" style="height:40px; border-radius:4px;" alt="Logo">
-                    <h1 style="margin:0;">Zachi Smart-POS — ${this.currentTab.charAt(0).toUpperCase() + this.currentTab.slice(1)} Report</h1>
-                </div>
-                <p style="color:#64748b;margin-top:0;">Period: ${this.dateRange.start} to ${this.dateRange.end}</p>
+                <h1>Zachi Smart-POS — ${this.currentTab.charAt(0).toUpperCase() + this.currentTab.slice(1)} Report</h1>
+                <p class="report-period">Period: ${this.dateRange.start} to ${this.dateRange.end}</p>
                 ${content.innerHTML}
             </body></html > `);
         win.document.close();
@@ -668,5 +805,20 @@ const ReportsAdv = {
         a.download = `zachipos_${pdfType}_${this.dateRange.start}.pdf`;
         document.body.appendChild(a); a.click();
         document.body.removeChild(a);
+    },
+
+    /** Update the payment-method group-by selector and re-render the tab. */
+    setPmGroupBy(value) {
+        this.pmGroupBy = value;
+        this.loadCurrentTab();
+    },
+
+    /** Update the aggregation-type selector and re-render the tab. */
+    setAggType(value) {
+        this.aggType = value;
+        this.loadCurrentTab();
     }
 };
+
+// Expose to global scope for delegated event handlers (data-on-* attributes).
+window.ReportsAdv = ReportsAdv;

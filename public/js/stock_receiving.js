@@ -15,8 +15,10 @@ const StockReceiving = (function () {
         if (!loader) {
             loader = document.createElement('div');
             loader.id = 'sr-loader';
-            loader.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.7);display:none;align-items:center;justify-content:center;z-index:9999;';
-            loader.innerHTML = '<div style="width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #3498db;border-radius:50%;animation:sr-spin 1s linear infinite;"></div><style>@keyframes sr-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>';
+            // Picked up by /js/utils/data-style.js applier on appendChild below.
+            loader.setAttribute('data-style', 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.7);display:none;align-items:center;justify-content:center;z-index:9999;');
+            // Spinner element + @keyframes sr-spin live in /css/styles.css (Task #7).
+            loader.innerHTML = '<div id="sr-loader-spinner"></div>';
             document.body.appendChild(loader);
         }
         loader.style.display = show ? 'flex' : 'none';
@@ -69,88 +71,98 @@ const StockReceiving = (function () {
 
     function renderContent(container) {
         container.innerHTML = `
-            <div class="page-header">
-                <div class="header-content">
-                    <h1>📦 Stock Receiving</h1>
-                    <p class="subtitle">Quickly receive stock and create new products on-the-fly.</p>
+            <!-- Hero header: gradient background + clear primary CTA on the
+                 right so the "Submit" action is unmistakable. Auxiliary
+                 actions (Add manual / Template / Upload) are grouped in a
+                 secondary toolbar below to reduce action overload. -->
+            <div class="sr-hero">
+                <div class="sr-hero-text">
+                    <h1 class="sr-hero-title">📦 Stock Receiving</h1>
+                    <p class="sr-hero-subtitle">Receive deliveries fast — scan or type, add new products on-the-fly, and post the GRN in one click.</p>
                 </div>
-                <div class="header-actions">
-                    <button class="btn btn-secondary" onclick="StockReceiving.addItem()">
-                        <span>+ Add Manual Item</span>
-                    </button>
-                    <button class="btn btn-outline-primary" onclick="StockReceiving.downloadTemplate()">
-                        <span>📥 Template</span>
-                    </button>
-                    <button class="btn btn-secondary" onclick="document.getElementById('sr-upload-input').click()">
-                        <span>📤 Upload CSV</span>
-                    </button>
-                    <input type="file" id="sr-upload-input" hidden accept=".csv" onchange="StockReceiving.handleUpload(event)">
-                    <button class="btn btn-primary" onclick="StockReceiving.submit()">
+                <div class="sr-hero-cta">
+                    <button class="btn btn-primary btn-lg" data-on-click="StockReceiving.submit()">
                         <span>✅ Submit Receipt</span>
                     </button>
                 </div>
             </div>
 
-            <div class="card mb-4 shadow-sm border-0">
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Select Supplier <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <select id="sr-supplier" class="form-select select2-basic">
-                                    <option value="">-- Choose Supplier --</option>
-                                    ${suppliers.map(s => `<option value="${s.supplier_id}">${s.company_name} ${!s.is_active ? '(Inactive)' : ''}</option>`).join('')}
-                                </select>
-                                <button class="btn btn-outline-primary" onclick="StockReceiving.quickAddSupplier()">
-                                    <span>Quick Add</span>
-                                </button>
-                            </div>
+            <div class="sr-toolbar">
+                <button class="btn btn-secondary btn-sm" data-on-click="StockReceiving.addItem()">
+                    <span>+ Add manual item</span>
+                </button>
+                <button class="btn btn-secondary btn-sm" data-on-click="StockReceiving.downloadTemplate()">
+                    <span>📥 CSV template</span>
+                </button>
+                <button class="btn btn-secondary btn-sm" data-on-click="Dom.clickById('sr-upload-input')">
+                    <span>📤 Upload CSV</span>
+                </button>
+                <input type="file" id="sr-upload-input" hidden accept=".csv" data-on-change="StockReceiving.handleUpload($event)">
+            </div>
+
+            <!-- Header card: 3-column grid (supplier / date / search) so
+                 the cashier's eye reads left-to-right in the same order
+                 they fill the form. Notes drops to a full-width row. -->
+            <div class="sr-card sr-header-card">
+                <div class="sr-header-grid">
+                    <div class="sr-field">
+                        <label class="sr-label">Supplier <span class="sr-req">*</span></label>
+                        <div class="sr-input-group">
+                            <select id="sr-supplier" class="form-input">
+                                <option value="">-- Choose supplier --</option>
+                                ${suppliers.map(s => `<option value="${s.supplier_id}">${s.company_name}${!s.is_active ? ' (Inactive)' : ''}</option>`).join('')}
+                            </select>
+                            <button class="btn btn-secondary btn-sm" data-on-click="StockReceiving.quickAddSupplier()" title="Add a new supplier without leaving this page">
+                                <span>＋</span>
+                            </button>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold">Received Date <span class="text-danger">*</span></label>
-                            <input type="date" id="sr-date" class="form-control" value="${new Date().toISOString().split('T')[0]}">
+                    </div>
+                    <div class="sr-field">
+                        <label class="sr-label">Received date <span class="sr-req">*</span></label>
+                        <input type="date" id="sr-date" class="form-input" value="${new Date().toISOString().split('T')[0]}">
+                    </div>
+                    <div class="sr-field sr-field--search">
+                        <label class="sr-label">Search / scan product</label>
+                        <div class="sr-search-wrap">
+                            <input type="text" id="sr-search" class="form-input" placeholder="Barcode or product name…" autocomplete="off">
+                            <div id="sr-search-results" class="autocomplete-suggestions" data-style="display:none;"></div>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold">Search Product (Scan/Type)</label>
-                            <div class="input-group">
-                                <input type="text" id="sr-search" class="form-control" placeholder="Barcode or Name..." autocomplete="off">
-                                <div id="sr-search-results" class="autocomplete-suggestions" style="display:none;"></div>
-                            </div>
-                        </div>
-                        <div class="col-12 mt-3">
-                            <label class="form-label fw-bold">Notes / Reference</label>
-                            <textarea id="sr-notes" class="form-control" rows="1" placeholder="Optional notes for this receipt..."></textarea>
-                        </div>
+                    </div>
+                    <div class="sr-field sr-field--full">
+                        <label class="sr-label">Notes / reference</label>
+                        <textarea id="sr-notes" class="form-input" rows="1" placeholder="Optional notes for this receipt…"></textarea>
                     </div>
                 </div>
             </div>
 
-            <div class="card shadow-sm border-0 overflow-hidden">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0" id="sr-table">
-                        <thead class="table-light">
+            <div class="sr-card sr-table-card">
+                <div class="sr-table-scroll">
+                    <table class="sr-table" id="sr-table">
+                        <thead>
                             <tr>
-                                <th style="width: 50px;">#</th>
-                                <th>Item Details</th>
-                                <th style="width: 150px;">Cost Price</th>
-                                <th style="width: 150px;">Unit Price</th>
-                                <th style="width: 120px;">Markup% / Margin</th>
-                                <th style="width: 120px;">Qty Added</th>
-                                <th style="width: 120px;">Subtotal</th>
-                                <th style="width: 50px;"></th>
+                                <th data-style="width:42px;">#</th>
+                                <th>Item details</th>
+                                <th data-style="width:140px;">Cost</th>
+                                <th data-style="width:140px;">Sell</th>
+                                <th data-style="width:130px;">Margin</th>
+                                <th data-style="width:100px;">Qty</th>
+                                <th data-style="width:130px;text-align:right;">Subtotal</th>
+                                <th data-style="width:42px;"></th>
                             </tr>
                         </thead>
                         <tbody id="sr-items-body">
                             <!-- Rows loaded via JS -->
                         </tbody>
-                        <tfoot class="table-light fw-bold">
-                            <tr>
-                                <td colspan="5" class="text-end">Total Items: <span id="sr-total-count">0</span></td>
-                                <td class="text-end">Grand Total:</td>
-                                <td colspan="2"><span id="sr-grand-total">K0.00</span></td>
-                            </tr>
-                        </tfoot>
                     </table>
+                </div>
+                <div class="sr-totals-bar">
+                    <div class="sr-totals-left">
+                        <span class="sr-totals-pill">Items: <strong id="sr-total-count">0</strong></span>
+                    </div>
+                    <div class="sr-totals-right">
+                        <span class="sr-totals-label">Grand total</span>
+                        <span class="sr-totals-amount" id="sr-grand-total">K0.00</span>
+                    </div>
                 </div>
             </div>
         `;
@@ -180,7 +192,7 @@ const StockReceiving = (function () {
 
                     if (products.length > 0) {
                         results.innerHTML = products.map(p => `
-                            <div class="suggestion-item" onclick="StockReceiving.addItemFromSearch(${p.product_id})">
+                            <div class="suggestion-item" data-on-click="StockReceiving.addItemFromSearch(${p.product_id})">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <div class="fw-bold">${p.name}</div>
@@ -292,7 +304,7 @@ const StockReceiving = (function () {
         if (!tbody) return;
 
         if (receivingItems.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-5 text-muted">No items added yet. Search or add manual items.</td></tr>`;
+            tbody.innerHTML = `<tr class="sr-empty-row"><td colspan="8">📦 No items yet — scan a barcode, search by name, or add a manual line to get started.</td></tr>`;
             document.getElementById('sr-total-count').textContent = '0';
             document.getElementById('sr-grand-total').textContent = 'K0.00';
             return;
@@ -319,24 +331,24 @@ const StockReceiving = (function () {
                     <td>
                         ${item.product_id ?
                     `<div class="fw-bold">${item.name}</div><small class="text-muted">${item.barcode || 'N/A'}</small>` :
-                    `<div class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="New Product Name" value="${item.name}" onchange="StockReceiving.updateItem(${index}, 'name', this.value)"></div>
+                    `<div class="mb-1"><input type="text" class="form-control form-control-sm" placeholder="New Product Name" value="${item.name}" data-on-change="StockReceiving.updateItem(${index}, 'name', $value)"></div>
                              <div class="row g-1">
-                                <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="Barcode (Auto if empty)" value="${item.barcode}" onchange="StockReceiving.updateItem(${index}, 'barcode', this.value)"></div>
-                                <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="Category" value="${item.category}" onchange="StockReceiving.updateItem(${index}, 'category', this.value)"></div>
+                                <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="Barcode (Auto if empty)" value="${item.barcode}" data-on-change="StockReceiving.updateItem(${index}, 'barcode', $value)"></div>
+                                <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="Category" value="${item.category}" data-on-change="StockReceiving.updateItem(${index}, 'category', $value)"></div>
                              </div>`
                 }
                     </td>
                     <td>
                         <div class="input-group input-group-sm">
                             <span class="input-group-text">K</span>
-                            <input type="number" step="0.01" class="form-control" value="${item.cost_price}" onchange="StockReceiving.updateItem(${index}, 'cost_price', this.value)">
+                            <input type="number" step="0.01" class="form-control" value="${item.cost_price}" data-on-change="StockReceiving.updateItem(${index}, 'cost_price', $value)">
                             ${alertIcon}
                         </div>
                     </td>
                     <td>
                         <div class="input-group input-group-sm">
                             <span class="input-group-text">K</span>
-                            <input type="number" step="0.01" class="form-control" value="${item.unit_price}" onchange="StockReceiving.updateItem(${index}, 'unit_price', this.value)">
+                            <input type="number" step="0.01" class="form-control" value="${item.unit_price}" data-on-change="StockReceiving.updateItem(${index}, 'unit_price', $value)">
                         </div>
                     </td>
                     <td>
@@ -346,11 +358,11 @@ const StockReceiving = (function () {
                         </div>
                     </td>
                     <td>
-                        <input type="number" class="form-control form-control-sm" value="${item.quantity_added}" min="1" onchange="StockReceiving.updateItem(${index}, 'quantity_added', this.value)">
+                        <input type="number" class="form-control form-control-sm" value="${item.quantity_added}" min="1" data-on-change="StockReceiving.updateItem(${index}, 'quantity_added', $value)">
                     </td>
                     <td class="fw-bold">K${subtotal.toFixed(2)}</td>
                     <td>
-                        <button class="btn btn-sm btn-outline-danger" onclick="StockReceiving.removeItem(${index})">×</button>
+                        <button class="btn btn-sm btn-outline-danger" data-on-click="StockReceiving.removeItem(${index})">×</button>
                     </td>
                 </tr>
             `;
@@ -515,3 +527,6 @@ const StockReceiving = (function () {
 
     return { render, addItem, addItemFromSearch, removeItem, updateItem, submit, quickAddSupplier, handleUpload, downloadTemplate };
 })();
+
+// Expose to global scope for delegated event handlers (data-on-* attributes).
+window.StockReceiving = StockReceiving;

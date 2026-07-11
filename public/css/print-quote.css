@@ -1,0 +1,313 @@
+/* ============================================================
+   print-quote.css — clean A4 print layout for the Quote modal
+   ============================================================
+   Design intent:
+   - SCREEN: render the quote document inside the existing modal,
+     keeping all chrome (close button, footer buttons) visible
+     so the cashier can update status / convert / print.
+   - PRINT: hide ALL app chrome (sidebar, top bar, modal header
+     and footer, every button) and present the quote document
+     full-page on A4.
+
+   The browser's default print header/footer (URL, page number,
+   date) is USER-controlled in the print dialog. We minimise the
+   page margin via `@page` so it has less room, and the print
+   button surfaces a tooltip telling the cashier to untick
+   "Headers and footers" once in the print dialog.
+   ============================================================ */
+
+/* ---------- Screen-only document styling (inside the modal) ---------- */
+
+.qpd-document {
+  font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+  color: #111;
+  background: #fff;
+  padding: 0;
+}
+
+.qpd-letterhead {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 3px solid #1B3A5C;
+  margin-bottom: 1.25rem;
+}
+
+.qpd-letterhead .qpd-logo {
+  flex: 0 0 110px;
+  max-width: 110px;
+  height: auto;
+}
+
+.qpd-letterhead .qpd-store {
+  flex: 1;
+  line-height: 1.35;
+}
+
+.qpd-letterhead .qpd-store h2 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.4rem;
+  color: #1B3A5C;
+  letter-spacing: 0.5px;
+}
+
+.qpd-letterhead .qpd-store .qpd-tagline {
+  font-size: 0.85rem;
+  color: #555;
+  font-style: italic;
+  margin-bottom: 0.4rem;
+}
+
+.qpd-letterhead .qpd-store .qpd-contact {
+  font-size: 0.82rem;
+  color: #333;
+  margin-top: 0.2rem;
+}
+
+.qpd-title {
+  text-align: center;
+  font-size: 1.5rem;
+  letter-spacing: 4px;
+  font-weight: 700;
+  color: #1B3A5C;
+  margin: 0.5rem 0 1rem 0;
+}
+
+.qpd-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.88rem;
+}
+
+.qpd-meta-grid .qpd-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #666;
+  letter-spacing: 1px;
+  margin-bottom: 0.25rem;
+}
+
+.qpd-meta-grid .qpd-bill-to .qpd-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111;
+}
+
+.qpd-meta-grid .qpd-meta-right {
+  text-align: right;
+}
+
+.qpd-meta-grid .qpd-meta-right .qpd-row {
+  margin-bottom: 0.2rem;
+}
+
+.qpd-meta-grid .qpd-meta-right .qpd-row strong {
+  display: inline-block;
+  min-width: 110px;
+  color: #555;
+  font-weight: 600;
+}
+
+.qpd-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+  font-size: 0.88rem;
+}
+
+.qpd-items-table thead th {
+  background: #1B3A5C;
+  color: #fff;
+  text-align: left;
+  padding: 0.55rem 0.6rem;
+  font-size: 0.78rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.qpd-items-table tbody td {
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid #e2e2e2;
+}
+
+.qpd-items-table tbody tr:nth-child(even) td {
+  background: #f7f9fc;
+}
+
+.qpd-items-table .qpd-num { text-align: right; }
+.qpd-items-table .qpd-center { text-align: center; }
+
+.qpd-totals {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.25rem;
+}
+
+.qpd-totals .qpd-totals-box {
+  min-width: 280px;
+  border: 1px solid #ccc;
+  background: #f7f9fc;
+}
+
+.qpd-totals .qpd-totals-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #e2e2e2;
+}
+
+.qpd-totals .qpd-totals-row:last-child { border-bottom: none; }
+
+.qpd-totals .qpd-grand {
+  background: #1B3A5C;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.05rem;
+  padding: 0.6rem 0.75rem;
+}
+
+.qpd-notes {
+  background: #fffceb;
+  border-left: 4px solid #f5b041;
+  padding: 0.65rem 0.85rem;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+  color: #333;
+}
+
+.qpd-signatures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 2.5rem;
+  padding-top: 0.5rem;
+}
+
+.qpd-signatures .qpd-sig-line {
+  border-top: 1px solid #555;
+  padding-top: 0.35rem;
+  font-size: 0.78rem;
+  color: #555;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.qpd-footer {
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #777;
+  border-top: 1px dashed #bbb;
+  padding-top: 0.6rem;
+}
+
+.qpd-footer .qpd-prepared {
+  margin-top: 0.4rem;
+  color: #555;
+}
+
+/* ---------- PRINT-ONLY rules ---------- */
+
+/*
+ * IMPORTANT: All destructive print rules are scoped to `body.printing-quote`
+ * so they ONLY fire when `Quotes.printQuoteDocument()` toggles the class
+ * before invoking window.print(). Without this scope, opening Ctrl+P from
+ * any other page (dashboard, daily sales, EOD report, jobs, etc.) would
+ * blank the page because `body > *:not(#modal-overlay)` would hide the
+ * actual page content. The class is added by `Quotes.printQuoteDocument`
+ * and removed on the `afterprint` event.
+ */
+@media print {
+  body.printing-quote {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Hide app chrome — sidebar, top bar, anything outside the modal. */
+  body.printing-quote > *:not(#modal-overlay):not(.modal-overlay) {
+    display: none !important;
+  }
+  body.printing-quote #sidebar,
+  body.printing-quote .sidebar,
+  body.printing-quote #topbar,
+  body.printing-quote .topbar,
+  body.printing-quote #navbar,
+  body.printing-quote .navbar,
+  body.printing-quote #main-nav,
+  body.printing-quote #app-header,
+  body.printing-quote .app-header,
+  body.printing-quote .toast-container {
+    display: none !important;
+  }
+
+  /* Lift the modal onto the printed page itself. */
+  body.printing-quote .modal-overlay {
+    position: static !important;
+    background: #fff !important;
+    backdrop-filter: none !important;
+    overflow: visible !important;
+    display: block !important;
+    padding: 0 !important;
+  }
+  body.printing-quote .modal-overlay .modal,
+  body.printing-quote .modal {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body.printing-quote .modal-body {
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  /* Hide every interactive control & non-print decoration inside the quote. */
+  body.printing-quote .modal-header,
+  body.printing-quote .modal-footer,
+  body.printing-quote .modal-close,
+  body.printing-quote button,
+  body.printing-quote .btn,
+  body.printing-quote .no-print,
+  body.printing-quote .qpd-print-tip {
+    display: none !important;
+  }
+
+  /* Quote-specific page-break hints — safe to leave unscoped because the
+     selectors only exist inside the quote document. */
+  .qpd-letterhead, .qpd-totals, .qpd-signatures { page-break-inside: avoid; }
+  .qpd-items-table thead { display: table-header-group; }
+  .qpd-items-table tr { page-break-inside: avoid; }
+
+  /* Tight margin so the browser has less room for default header/footer
+     even if the user forgets to untick "Headers and footers". This is a
+     global @page rule and only takes effect during printing — harmless
+     when not in quote-print mode because nothing else changes layout. */
+  @page {
+    size: A4;
+    margin: 12mm 14mm 14mm 14mm;
+  }
+}
+
+/* Tooltip note that ONLY shows on screen, not on print. */
+.qpd-print-tip {
+  display: block;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #eef5ff;
+  border-left: 3px solid #1B3A5C;
+  font-size: 0.78rem;
+  color: #34495e;
+  border-radius: 4px;
+}

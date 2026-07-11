@@ -561,5 +561,157 @@ async function bulkUpdate(req, res) {
     }
 }
 
-module.exports = { listProducts, getProduct, getByBarcode, createProduct, updateProduct, deleteProduct, bulkDelete, bulkUpdate, lowStockAlerts, getCategories, importProducts, exportProducts, getImportTemplate };
+/**
+ * GET /api/products/duplicates
+ * Returns groups of products with identical or highly similar names (trigram ≥ 0.5).
+ * Requires pg_trgm extension (migration 010).
+ */
+async function getDuplicates(req, res) {
+    try {
+        // Exact duplicates (same LOWER(TRIM(name)))
+        const exactResult = await pool.query(`
+            SELECT
+                LOWER(TRIM(name)) AS group_key,
+                'exact' AS match_type,
+                json_agg(
+                    json_build_object(
+                        'product_id', product_id,
+                        'name', name,
+                        'category', category,
+                        'unit_price', unit_price,
+                        'stock_quantity', stock_quantity,
+                        'barcode', barcode,
+                        'sales_count', (
+                            SELECT COUNT(*) FROM sale_items si
+                            WHERE si.product_id = p.product_id
+                        )
+                    )
+                    ORDER BY product_id ASC
+                ) AS products
+            FROM products p
+            WHERE is_active = TRUE
+            GROUP BY LOWER(TRIM(name))
+            HAVING COUNT(*) > 1
+        `);
+
+        // Fuzzy duplicates (trigram similarity ≥ 0.5, different exact names)
+        const fuzzyResult = await pool.query(`
+            SELECT
+                a.product_id AS id_a, a.name AS name_a,
+                a.category AS cat_a, a.unit_price AS price_a, a.stock_quantity AS stock_a,
+                b.product_id AS id_b, b.name AS name_b,
+                b.category AS cat_b, b.unit_price AS price_b, b.stock_quantity AS stock_b,
+                similarity(a.name, b.name) AS sim
+            FROM products a
+            JOIN products b ON b.product_id > a.product_id
+            WHERE a.is_active = TRUE
+              AND b.is_active = TRUE
+              AND similarity(a.name, b.name) >= 0.5
+              AND LOWER(TRIM(a.name)) <> LOWER(TRIM(b.name))
+            ORDER BY sim DESC
+            LIMIT 50
+        `);
+
+        res.json({
+            exact: exactResult.rows,
+            fuzzy: fuzzyResult.rows
+        });
+    } catch (err) {
+        console.error('getDuplicates error:', err);
+        res.status(500).json({ error: err.message });
+    }
+}
+
+/**
+ * POST /api/products/merge
+ * Body: { keepId: number, mergeIds: number[] }
+ * Redirects all FK references from mergeIds → keepId, combines stock, then soft-deletes mergeIds.
+ */
+async function mergeProducts(req, res) {
+    const { keepId, mergeIds } = req.body;
+    if (!keepId || !Array.isArray(mergeIds) || mergeIds.length === 0) {
+        return res.status(400).json({ error: 'keepId and mergeIds[] are required.' });
+    }
+    if (mergeIds.includes(keepId)) {
+        return res.status(400).json({ error: 'keepId cannot appear in mergeIds.' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Verify keeper exists
+        const keepRes = await client.query(
+            'SELECT product_id, name, stock_quantity FROM products WHERE product_id = $1 AND is_active = TRUE',
+            [keepId]
+        );
+        if (keepRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Keeper product not found.' });
+        }
+
+        const placeholders = mergeIds.map((_, i) => `$${i + 1}`).join(', ');
+
+        // Sum stock from all absorbed products
+        const stockRes = await client.query(
+            `SELECT COALESCE(SUM(stock_quantity), 0) AS total_stock FROM products WHERE product_id IN (${placeholders})`,
+            mergeIds
+        );
+        const absorbedStock = parseFloat(stockRes.rows[0].total_stock) || 0;
+
+        // Redirect sale_items
+        await client.query(
+            `UPDATE sale_items SET product_id = $1 WHERE product_id IN (${placeholders})`,
+            [keepId, ...mergeIds]
+        );
+
+        // Redirect inventory_movements
+        await client.query(
+            `UPDATE inventory_movements SET product_id = $1 WHERE product_id IN (${placeholders})`,
+            [keepId, ...mergeIds]
+        );
+
+        // Redirect purchase_items if table exists
+        await client.query(
+            `UPDATE purchase_items SET product_id = $1 WHERE product_id IN (${placeholders})`,
+            [keepId, ...mergeIds]
+        ).catch(() => { }); // silently ignore if table does not exist
+
+        // Add absorbed stock to keeper
+        const newQty = parseFloat(keepRes.rows[0].stock_quantity) + absorbedStock;
+        await client.query(
+            'UPDATE products SET stock_quantity = $1, updated_at = NOW() WHERE product_id = $2',
+            [newQty, keepId]
+        );
+
+        // Record merge as an inventory movement
+        if (absorbedStock > 0) {
+            await recordMovement(pool, keepId, 'ADJUSTMENT', absorbedStock, newQty,
+                `Merged from product IDs: ${mergeIds.join(', ')}`, req.user.user_id, 'merge');
+        }
+
+        // Soft-delete absorbed products
+        await client.query(
+            `UPDATE products SET is_active = FALSE, stock_quantity = 0, updated_at = NOW() WHERE product_id IN (${placeholders})`,
+            mergeIds
+        );
+
+        await client.query('COMMIT');
+
+        res.json({
+            message: `Merged ${mergeIds.length} product(s) into product ID ${keepId}.`,
+            keepId,
+            mergedIds: mergeIds,
+            stockAdded: absorbedStock
+        });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('mergeProducts error:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+}
+
+module.exports = { listProducts, getProduct, getByBarcode, createProduct, updateProduct, deleteProduct, bulkDelete, bulkUpdate, lowStockAlerts, getCategories, importProducts, exportProducts, getImportTemplate, getDuplicates, mergeProducts };
 

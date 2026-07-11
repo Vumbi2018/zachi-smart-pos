@@ -6,7 +6,7 @@ const Promotions = {
                     <h1 class="page-title">Promotions & Discounts</h1>
                     <p class="text-secondary">Manage automated pricing rules and offers.</p>
                 </div>
-                <button class="btn btn-primary" onclick="Promotions.showCreateModal()">+ New Promotion</button>
+                <button class="btn btn-primary" data-on-click="Promotions.showCreateModal()">+ New Promotion</button>
             </div>
 
             <div id="promotions-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -29,7 +29,7 @@ const Promotions = {
                         <div class="empty-state-icon">🏷️</div>
                         <h3>No Active Promotions</h3>
                         <p>Create a promotion to drive sales.</p>
-                        <button class="btn btn-primary mt-4" onclick="Promotions.showCreateModal()">Create First Promo</button>
+                        <button class="btn btn-primary mt-4" data-on-click="Promotions.showCreateModal()">Create First Promo</button>
                     </div>
                 `;
                 return;
@@ -38,7 +38,7 @@ const Promotions = {
             list.innerHTML = promos.map(p => `
                 <div class="card relative overflow-hidden">
                     <div class="absolute top-0 right-0 p-2">
-                        <button class="text-red-600 hover:bg-red-50 p-1 rounded" onclick="Promotions.deletePromo(${p.promo_id})" title="Deactivate">✕</button>
+                        <button class="text-red-600 hover:bg-red-50 p-1 rounded" data-on-click="Promotions.deletePromo(${p.promo_id})" title="Deactivate">✕</button>
                     </div>
                     <div class="card-body">
                         <div class="flex items-center gap-2 mb-2">
@@ -80,7 +80,7 @@ const Promotions = {
         Utils.showModal(`
             <div class="modal-header">
                 <h2 class="modal-title">Create Promotion</h2>
-                <button class="modal-close" onclick="Utils.closeModal()">&times;</button>
+                <button class="modal-close" data-on-click="Utils.closeModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="promo-form" class="space-y-4">
@@ -97,7 +97,7 @@ const Promotions = {
                     <div class="grid grid-cols-2 gap-4">
                         <div class="form-group">
                             <label>Discount Type</label>
-                            <select name="discount_type" class="form-select" onchange="Promotions.toggleValueLabel(this.value)">
+                            <select name="discount_type" class="form-select" data-on-change="Promotions.toggleValueLabel($value)">
                                 <option value="percentage">Percentage (%)</option>
                                 <option value="fixed_amount">Fixed Amount (Currency)</option>
                             </select>
@@ -111,7 +111,7 @@ const Promotions = {
                     <div class="grid grid-cols-2 gap-4">
                         <div class="form-group">
                             <label>Applies To</label>
-                            <select name="applies_to" class="form-select" onchange="Promotions.toggleAppliesTo(this.value)">
+                            <select name="applies_to" class="form-select" data-on-change="Promotions.toggleAppliesTo($value)">
                                 <option value="all">Entire Cart / Order</option>
                                 <option value="category">Specific Category</option>
                                 <option value="product">Specific Product</option>
@@ -142,8 +142,8 @@ const Promotions = {
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="Utils.closeModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="Promotions.submitCreate()">Create Promotion</button>
+                <button class="btn btn-secondary" data-on-click="Utils.closeModal()">Cancel</button>
+                <button class="btn btn-primary" data-on-click="Promotions.submitCreate()">Create Promotion</button>
             </div>
         `);
     },
@@ -195,3 +195,6 @@ const Promotions = {
         }
     }
 };
+
+// Expose to global scope for delegated event handlers (data-on-* attributes).
+window.Promotions = Promotions;

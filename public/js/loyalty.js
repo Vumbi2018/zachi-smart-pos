@@ -13,7 +13,7 @@ const Loyalty = {
                 <div class="card p-6">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="card-title">Loyalty Tiers</h2>
-                        <button class="btn btn-sm btn-primary" onclick="Loyalty.addTierRow()">+ Add Tier</button>
+                        <button class="btn btn-sm btn-primary" data-on-click="Loyalty.addTierRow()">+ Add Tier</button>
                     </div>
                     <form id="tiers-form">
                         <div class="overflow-x-auto">
@@ -33,7 +33,7 @@ const Loyalty = {
                             </table>
                         </div>
                         <div class="mt-4 flex justify-end">
-                            <button type="button" class="btn btn-primary" onclick="Loyalty.saveTiers()">Save Changes</button>
+                            <button type="button" class="btn btn-primary" data-on-click="Loyalty.saveTiers()">Save Changes</button>
                         </div>
                     </form>
                 </div>
@@ -91,7 +91,7 @@ const Loyalty = {
                     <input type="number" name="points_multiplier" class="form-input text-sm" value="${tier.points_multiplier || 1.0}" step="0.1" min="1">
                 </td>
                 <td class="py-2 text-right">
-                    <button type="button" class="text-red-500 hover:text-red-700" onclick="this.closest('tr').remove()">✕</button>
+                    <button type="button" class="text-red-500 hover:text-red-700" data-on-click="Dom.removeClosest('tr', $el)">✕</button>
                 </td>
             </tr>
         `;
@@ -125,3 +125,6 @@ const Loyalty = {
         }
     }
 };
+
+// Expose to global scope for delegated event handlers (data-on-* attributes).
+window.Loyalty = Loyalty;

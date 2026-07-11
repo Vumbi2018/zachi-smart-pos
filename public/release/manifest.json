@@ -1,0 +1,197 @@
+{
+  "latest": {
+    "version": "1.0.42",
+    "released_at": "2026-05-19T13:08:41.370Z",
+    "channel": "stable",
+    "notes": "Android OTA wiring bootstrap. Install this APK ONCE on the Android device — from v1.0.42 onward every future version downloads automatically over the air, no more APK installs.\n\nAlso includes: premium User Access management UI, signed Capgo OTA pipeline, login-screen version display, fixed Replit preview iframe CSP.",
+    "source_tarball": {
+      "filename": "zachi-source-1.0.42.tar.gz",
+      "url": "/release/zachi-source-1.0.42.tar.gz",
+      "size_bytes": 9737201,
+      "sha256": "fd102a77b0bdd378658f4d666706be27031a73f68fd85b95d6b6a9957dd6ec84"
+    }
+  },
+  "releases": [
+    {
+      "version": "1.0.42",
+      "released_at": "2026-05-19T13:08:41.370Z",
+      "channel": "stable",
+      "source_sha256": "fd102a77b0bdd378658f4d666706be27031a73f68fd85b95d6b6a9957dd6ec84"
+    },
+    {
+      "version": "1.0.29",
+      "released_at": "2026-05-16T08:53:35.281Z",
+      "channel": "stable",
+      "source_sha256": "f9be4cca5dc50af4bab26c4b15c4aaa8b698581d1764eb8df5606c28d8042440",
+      "windows_sha256": "6e81a746953f25110a92d0c602b1baf50d42bd668fd9931a470d08dbd529e38b"
+    },
+    {
+      "version": "1.0.28",
+      "released_at": "2026-05-16T08:30:50.340Z",
+      "channel": "stable",
+      "source_sha256": "e4a957df74219af359c0ddc5e072322a88e7ed3e0561be4c50cf7adea885ceaf",
+      "windows_sha256": "9e3737495deddf8fa8d99f7ae9f3ad11258d5a18c96adec6cec7d9290d69fc1a"
+    },
+    {
+      "version": "1.0.27",
+      "released_at": "2026-05-12T16:06:15.952Z",
+      "channel": "stable",
+      "source_sha256": "ab59a42e28001067493ac57e0a2e36d343e68d2824132dac201f7a462c37b400",
+      "windows_sha256": "7bcb8a6ca7956005b338140c331b7a94ce6abc9c1ca09488ac79571caa14dca8"
+    },
+    {
+      "version": "1.0.26",
+      "released_at": "2026-05-12T15:52:04.787Z",
+      "channel": "stable",
+      "source_sha256": "d063ec957953498b7513a3a5e4ec43df1486fa31af02678bcb6346c49edd2e57",
+      "windows_sha256": "cca841112362488e50f02abd59ed6c6658f06b89916c3d784a31ecd6f6a4aa06"
+    },
+    {
+      "version": "1.0.25",
+      "released_at": "2026-05-09T05:11:10.110Z",
+      "channel": "stable",
+      "source_sha256": "10084f21984780b2d700496f4de8b978ac61a01e1eb4fc14fba8363621b0bf3a",
+      "windows_sha256": "51f1c4d189ca4293dd83baac62ff492f3d21c436e820d087206eba4daeb2837d"
+    },
+    {
+      "version": "1.0.24",
+      "released_at": "2026-05-06T05:53:15.947Z",
+      "channel": "stable",
+      "source_sha256": "70491454f3f3d6eba1ec232c3414945f2b1c853612752d3591dbf94a1bd06300",
+      "windows_sha256": "ca27826b3dc00cc1eff1e496607819a66ef9f6514cb396b6baa65cbb26f4ec99"
+    },
+    {
+      "version": "1.0.23",
+      "released_at": "2026-05-06T05:20:43.081Z",
+      "channel": "stable",
+      "source_sha256": "78a9ab3e2e02f6409da0c0c5006aed60bcad21ac58b09b7cc53de4e918626559",
+      "windows_sha256": "09bb259d9c210874a0eb745a470ca2951ed2f31c2f16a496b79967082a699900"
+    },
+    {
+      "version": "1.0.22",
+      "released_at": "2026-05-06T04:33:26.483Z",
+      "channel": "stable",
+      "source_sha256": "30e17e42d3cf920712b01b633f2d4703169247fcca865facf3ff75c91e001e8e",
+      "windows_sha256": "a56001fc66c73e16ab955df5934dc31a9a6b82ff3532f55ed20a706e8d6a2df3"
+    },
+    {
+      "version": "1.0.21",
+      "released_at": "2026-05-06T03:40:39.172Z",
+      "channel": "stable",
+      "source_sha256": "1642f722e2361bba2ff179e58d3152a000ada287c1e52a5c6fd94dc0eaa6e7b7",
+      "windows_sha256": "1754fbcfeab76f40904b890d8448ddba7fc60aa8149565ac75886e7c2f674cc0"
+    },
+    {
+      "version": "1.0.20",
+      "released_at": "2026-05-03T18:30:00.000Z",
+      "channel": "stable",
+      "source_sha256": "54b51cf3963ab33cb2417f6b26c72547b98a9d4683b57e181f29391de5af6a90",
+      "windows_sha256": "8c646a402925563497ef9bc9c14f974ce89c5284475656230bffff13f84368f5"
+    },
+    {
+      "version": "1.0.19",
+      "released_at": "2026-05-03T16:24:18.503Z",
+      "channel": "stable",
+      "source_sha256": "54b51cf3963ab33cb2417f6b26c72547b98a9d4683b57e181f29391de5af6a90",
+      "windows_sha256": "8c646a402925563497ef9bc9c14f974ce89c5284475656230bffff13f84368f5"
+    },
+    {
+      "version": "1.0.18",
+      "released_at": "2026-05-02T15:13:59.409Z",
+      "channel": "stable",
+      "source_sha256": "54b51cf3963ab33cb2417f6b26c72547b98a9d4683b57e181f29391de5af6a90",
+      "windows_sha256": "8c646a402925563497ef9bc9c14f974ce89c5284475656230bffff13f84368f5"
+    },
+    {
+      "version": "1.0.16",
+      "released_at": "2026-05-02T09:38:46.285Z",
+      "channel": "stable",
+      "source_sha256": "96d16bd62ef2188f5873e35192c3f68b0dd2b4f7a046c0f7300032173d1ad1d2",
+      "windows_sha256": "8b93fe1f09dc9fefb12299addb5ca7c69aad568296b803768e8232ab899123e7"
+    },
+    {
+      "version": "1.0.15",
+      "released_at": "2026-05-02T09:02:33.918Z",
+      "channel": "stable",
+      "source_sha256": "b8c735d8aa66dc6302fd45d4fbd4d105ad2d8494aede2d6518313b23d2338cf4",
+      "windows_sha256": "ab41d0e6695a4b284ff394846fe38a1ee5cdb454ae0bc3b0d7f3397380d88072"
+    },
+    {
+      "version": "1.0.14",
+      "released_at": "2026-05-02T06:35:38.604Z",
+      "channel": "stable",
+      "source_sha256": "d20f97e2df308adfe178f344d88971e79e5929488afd69ee3d5e0ec66c4974a5",
+      "windows_sha256": "3dbd2e4d43f62ac39f44a6a6c171e76ec825f10f594a63259f492c94cb30e6d3"
+    },
+    {
+      "version": "1.0.13",
+      "released_at": "2026-05-02T06:09:59.968Z",
+      "channel": "stable",
+      "source_sha256": "9e750d02d2bca244d9e3665683fb57cb80bc72cfb557ce070327826716cae1f3",
+      "windows_sha256": "8fcf1ce403a4aca1c7a9abeb6a4dc539ab16f3521706fa522426063739f1a852"
+    },
+    {
+      "version": "1.0.12",
+      "released_at": "2026-05-02T05:18:14.832Z",
+      "channel": "stable",
+      "source_sha256": "4d8ae8147152aa35bc97046bd423d0cd8b5bca4a4be7a07548d54edd20a7e18d",
+      "windows_sha256": "06fbf3f451cd56e4b14e79922402636a3d4b250eb8274eb7a08f8819ff4476a4"
+    },
+    {
+      "version": "1.0.11",
+      "released_at": "2026-05-01T04:39:10.251Z",
+      "channel": "stable",
+      "source_sha256": "2c068d24c533a6dede77b4bc1f2de01a14c58a4335d5dca88ae523075f364e7e",
+      "windows_sha256": "64313881f1c6bcaea9e39e5383554c441094d4c44ce44c0d0a84d45ae1d4e4dc"
+    },
+    {
+      "version": "1.0.10",
+      "released_at": "2026-05-01T03:56:24.000Z",
+      "channel": "stable",
+      "source_sha256": "d0f6e6ecb56a3b31602849c06dfede2070a004a88f3afc0721389fe6acc03c1a",
+      "windows_sha256": "ce0d386dabc9e507453fcbb2f4badd87502d41c171de743800b0d25d46268d05"
+    },
+    {
+      "version": "1.0.9",
+      "released_at": "2026-05-01T03:29:19.356Z",
+      "channel": "stable",
+      "source_sha256": "e86f8686330aa4b992d542df1ba734dc945d4df16a35f400aa70584a380b3297",
+      "windows_sha256": "f2991289bdb6bdaf2d823292fb9eaf45e9796ec9b315bf10682173f6f859ba0f"
+    },
+    {
+      "version": "1.0.8",
+      "released_at": "2026-05-01T03:22:01.392Z",
+      "channel": "stable",
+      "source_sha256": "92ff1d838c30d2b433948089850e38adc603c0e59782994b8261f823ba712fc5",
+      "windows_sha256": "6cf83b22b548a0acab59139bdb6dbcecf0e6138b4feda2a9e81eb70f23d696cb"
+    },
+    {
+      "version": "1.0.7",
+      "released_at": "2026-05-01T02:58:43.073Z",
+      "channel": "stable",
+      "source_sha256": "fd743ce5ed9eae4e4dd011a0675b348f2159aeec250d74cd0cc6df2b7ba5f0ae",
+      "windows_sha256": "ac17549b4e1ae56ce6894b07ca057c5f7c46fc89942fd9eed7438c0ea79ec426"
+    },
+    {
+      "version": "1.0.6",
+      "released_at": "2026-05-01T03:30:00.000Z",
+      "channel": "stable",
+      "source_sha256": "862600d1b77c59b917019b271d38cccdc92adc7f0a2f50c81b84114764294637",
+      "windows_sha256": "b092a505dfef6bd5ed38cd7bb9e200f0f4bdb4f65a1f54e93e49cfd7beb2450d"
+    },
+    {
+      "version": "1.0.5",
+      "released_at": "2026-05-01T00:50:00.000Z",
+      "channel": "stable",
+      "source_sha256": "a711149bcefd62406454d835c4045f3afb80ba7cfc399fa026d57500703bb904",
+      "windows_sha256": "7f7482b2e9e9adbfdfd1dcf3b11d4c59bd3e77a16441956990d83741dacb9d20"
+    },
+    {
+      "version": "1.0.4",
+      "released_at": "2026-04-30T07:45:00.000Z",
+      "channel": "stable",
+      "source_sha256": "7d9ad5422d646e7f625d04eaa3060501832d089b29f9f3042563ea833c993d82",
+      "windows_sha256": "dcc025900f1fdca78b99e883573d06482b82982c10640f3676eb7715a5e23174"
+    }
+  ]
+}

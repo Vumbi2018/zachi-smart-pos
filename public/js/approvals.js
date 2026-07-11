@@ -7,7 +7,7 @@ const Approvals = {
                     <p class="text-secondary">Review and approve pending requests.</p>
                 </div>
                 <div class="header-actions">
-                    <button class="btn btn-outline" onclick="Approvals.loadRequests()">↻ Refresh</button>
+                    <button class="btn btn-outline" data-on-click="Approvals.loadRequests()">↻ Refresh</button>
                 </div>
             </div>
 
@@ -60,8 +60,8 @@ const Approvals = {
                 <td class="p-4 text-sm text-secondary">${req.reason || '-'}</td>
                 <td class="p-4 text-center"><span class="badge badge-warning">Pending</span></td>
                 <td class="p-4 text-right">
-                    <button class="btn btn-sm btn-success" onclick="Approvals.decide(${req.request_id}, 'Approved', 'Approved by Admin')">✅ Approve</button>
-                    <button class="btn btn-sm btn-danger ml-2" onclick="Approvals.decide(${req.request_id}, 'Rejected', 'Rejected by Admin')">✕ Reject</button>
+                    <button class="btn btn-sm btn-success" data-on-click="Approvals.decide(${req.request_id}, 'Approved', 'Approved by Admin')">✅ Approve</button>
+                    <button class="btn btn-sm btn-danger ml-2" data-on-click="Approvals.decide(${req.request_id}, 'Rejected', 'Rejected by Admin')">✕ Reject</button>
                 </td>
             </tr>
         `).join('');
@@ -84,3 +84,6 @@ const Approvals = {
         }
     }
 };
+
+// Expose to global scope for delegated event handlers (data-on-* attributes).
+window.Approvals = Approvals;

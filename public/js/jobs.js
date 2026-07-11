@@ -39,7 +39,7 @@ const Jobs = {
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/></svg>
                         </button>
                     </div>
-                    <select id="job-filter-priority" class="form-select" style="min-width:120px">
+                    <select id="job-filter-priority" class="form-select" data-style="min-width:120px">
                         <option value="">All Priority</option>
                         <option value="Urgent">🔴 Urgent</option>
                         <option value="High">🟠 High</option>
@@ -54,10 +54,10 @@ const Jobs = {
             <div class="job-pipeline-stats" id="job-pipeline-stats"></div>
 
             <!-- Kanban Board -->
-            <div class="job-kanban" id="job-kanban" style="display:block"></div>
+            <div class="job-kanban" id="job-kanban" data-style="display:block"></div>
 
             <!-- List View (hidden by default) -->
-            <div class="table-container" id="job-list-view" style="display:none">
+            <div class="table-container" id="job-list-view" data-style="display:none">
                 <table class="data-table" id="jobs-table">
                     <thead>
                         <tr>
@@ -118,7 +118,7 @@ const Jobs = {
                 <div class="stat-chip stat-urgent"><span class="stat-num">${s.urgent || 0}</span><span class="stat-label">Urgent</span></div>
                 <div class="stat-chip"><span class="stat-num">${Utils.currency(s.total_balance_due || 0)}</span><span class="stat-label">Balance Due</span></div>
                 ${(s.pipeline || []).map(p => `
-                    <div class="stat-chip" style="border-color: ${this.STATUS_COLORS[p.status] || '#6b7280'}">
+                    <div class="stat-chip" data-style="border-color: ${this.STATUS_COLORS[p.status] || '#6b7280'}">
                         <span class="stat-num">${p.count}</span><span class="stat-label">${this.STATUS_ICONS[p.status] || ''} ${p.status}</span>
                     </div>
                 `).join('')}
@@ -151,7 +151,7 @@ const Jobs = {
             const items = jobs.filter(j => j.status === status);
             return `
                 <div class="kanban-column" data-status="${status}">
-                    <div class="kanban-header" style="border-top: 3px solid ${this.STATUS_COLORS[status]}">
+                    <div class="kanban-header" data-style="border-top: 3px solid ${this.STATUS_COLORS[status]}">
                         <span>${this.STATUS_ICONS[status]} ${status}</span>
                         <span class="kanban-count">${items.length}</span>
                     </div>
@@ -167,15 +167,15 @@ const Jobs = {
         const deadline = j.deadline ? new Date(j.deadline) : null;
         const overdue = deadline && deadline < new Date() && !['Ready', 'Delivered', 'Collected'].includes(j.status);
         return `
-            <div class="kanban-card ${j.priority === 'Urgent' ? 'kanban-urgent' : ''} ${overdue ? 'kanban-overdue' : ''}" onclick="Jobs.showDetailModal(${j.job_id})">
+            <div class="kanban-card ${j.priority === 'Urgent' ? 'kanban-urgent' : ''} ${overdue ? 'kanban-overdue' : ''}" data-on-click="Jobs.showDetailModal(${j.job_id})">
                 <div class="kanban-card-header">
                     <span class="kanban-job-num">${j.job_number}</span>
-                    <span class="badge badge-sm" style="background:${this.PRIORITY_COLORS[j.priority]}">${j.priority}</span>
+                    <span class="badge badge-sm" data-style="background:${this.PRIORITY_COLORS[j.priority]}">${j.priority}</span>
                 </div>
                 <div class="kanban-card-service">${j.service_name || 'General'}</div>
                 <div class="kanban-card-customer">
                     ${j.customer_name || 'Walk-in'}
-                    ${j.customer_type && j.customer_type !== 'Walk-in' ? `<span style="font-size:0.65em; opacity:0.7">(${j.customer_type})</span>` : ''}
+                    ${j.customer_type && j.customer_type !== 'Walk-in' ? `<span data-style="font-size:0.65em; opacity:0.7">(${j.customer_type})</span>` : ''}
                 </div>
                 <div class="kanban-card-footer">
                     ${j.assigned_name ? `<span class="kanban-assignee" title="${j.assigned_name}">${j.assigned_name.charAt(0)}</span>` : ''}
@@ -195,20 +195,20 @@ const Jobs = {
             return;
         }
         tbody.innerHTML = jobs.map(j => `
-            <tr class="clickable-row" onclick="Jobs.showDetailModal(${j.job_id})">
+            <tr class="clickable-row" data-on-click="Jobs.showDetailModal(${j.job_id})">
                 <td><strong>${j.job_number || '—'}</strong></td>
                 <td>${j.service_name || '—'}</td>
                 <td>
                     ${j.customer_name || 'Walk-in'}
-                    ${j.customer_type ? `<small class="text-secondary d-block" style="font-size:0.7em">${j.customer_type}</small>` : ''}
+                    ${j.customer_type ? `<small class="text-secondary d-block" data-style="font-size:0.7em">${j.customer_type}</small>` : ''}
                 </td>
                 <td>${j.assigned_name || '<em>Unassigned</em>'}</td>
-                <td><span class="badge" style="background:${this.PRIORITY_COLORS[j.priority]}">${j.priority}</span></td>
-                <td><span class="badge" style="background:${this.STATUS_COLORS[j.status]}">${j.status}</span></td>
+                <td><span class="badge" data-style="background:${this.PRIORITY_COLORS[j.priority]}">${j.priority}</span></td>
+                <td><span class="badge" data-style="background:${this.STATUS_COLORS[j.status]}">${j.status}</span></td>
                 <td>${j.deadline ? new Date(j.deadline).toLocaleDateString() : '—'}</td>
                 <td>${Utils.currency(j.balance_due || 0)}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); Jobs.advanceStatus(${j.job_id}, '${j.status}')" title="Advance status">▶</button>
+                    <button class="btn btn-sm btn-outline" data-on-click="Jobs.advanceStatus(${j.job_id}, '${j.status}')" title="Advance status">▶</button>
                 </td>
             </tr>
         `).join('');
@@ -224,7 +224,7 @@ const Jobs = {
         Utils.showModal(`
             <div class="modal-header">
                 <h3>Create New Job Card</h3>
-                <button class="modal-close" onclick="Utils.closeModal()">✕</button>
+                <button class="modal-close" data-on-click="Utils.closeModal()">✕</button>
             </div>
             <form id="create-job-form" class="modal-body">
                 <div class="form-row">
@@ -304,7 +304,7 @@ const Jobs = {
                 </div>
             </form>
             <div class="modal-footer">
-                <button class="btn btn-outline" onclick="Utils.closeModal()">Cancel</button>
+                <button class="btn btn-outline" data-on-click="Utils.closeModal()">Cancel</button>
                 <button class="btn btn-primary" id="btn-save-job">Create Job</button>
             </div>
         `);
@@ -369,7 +369,7 @@ const Jobs = {
             const currentIdx = allStatuses.indexOf(job.status);
             const pipelineHtml = allStatuses.map((s, i) => {
                 const cls = i < currentIdx ? 'step-done' : i === currentIdx ? 'step-active' : 'step-pending';
-                return `<div class="pipeline-step ${cls}" onclick="Jobs.changeStatus(${job.job_id}, '${s}')" title="Set to ${s}">
+                return `<div class="pipeline-step ${cls}" data-on-click="Jobs.changeStatus(${job.job_id}, '${s}')" title="Set to ${s}">
                     <span class="step-icon">${this.STATUS_ICONS[s]}</span><span class="step-label">${s}</span>
                 </div>`;
             }).join('<div class="step-connector"></div>');
@@ -379,14 +379,20 @@ const Jobs = {
                 <div class="proof-item">
                     <div class="proof-header">
                         <strong>v${p.version}</strong>
-                        <span class="badge badge-sm" style="background:${p.status === 'Approved' ? '#10b981' : p.status === 'Rejected' ? '#ef4444' : '#f59e0b'}">${p.status}</span>
+                        <span class="badge badge-sm" data-style="background:${p.status === 'Approved' ? '#10b981' : p.status === 'Rejected' ? '#ef4444' : '#f59e0b'}">${p.status}</span>
                     </div>
-                    ${p.file_url ? `<a href="${p.file_url}" target="_blank" class="proof-link">📎 View file</a>` : ''}
-                    ${p.notes ? `<p class="proof-notes">${p.notes}</p>` : ''}
+                    ${p.file_url ? (
+                        /^\/api\//.test(p.file_url)
+                            ? `<a href="${Utils.escapeHtml(p.file_url)}" class="proof-link" data-on-click="Jobs.openProofFile($event, ${job.job_id}, ${p.proof_id})">📎 ${Utils.escapeHtml(p.file_name || 'View file')}${p.size_bytes ? ' · ' + Math.max(1, Math.round(p.size_bytes / 1024)) + ' KB' : ''}</a>`
+                            : /^https?:\/\//i.test(p.file_url)
+                                ? `<a href="${Utils.escapeHtml(p.file_url)}" target="_blank" rel="noopener" class="proof-link">📎 ${Utils.escapeHtml(p.file_name || 'View file')}${p.size_bytes ? ' · ' + Math.max(1, Math.round(p.size_bytes / 1024)) + ' KB' : ''}</a>`
+                                : `<span class="proof-link-untrusted" data-style="color:var(--text-secondary)">📎 ${Utils.escapeHtml(p.file_url)} <em data-style="color:#ef4444">(untrusted link — not clickable)</em></span>`
+                    ) : ''}
+                    ${p.notes ? `<p class="proof-notes">${Utils.escapeHtml(p.notes)}</p>` : ''}
                     ${p.status === 'Pending' ? `
                         <div class="proof-actions">
-                            <button class="btn btn-sm btn-primary" onclick="Jobs.approveProof(${job.job_id}, ${p.proof_id})">✓ Approve</button>
-                            <button class="btn btn-sm btn-outline" onclick="Jobs.rejectProof(${job.job_id}, ${p.proof_id})">✕ Reject</button>
+                            <button class="btn btn-sm btn-primary" data-on-click="Jobs.approveProof(${job.job_id}, ${p.proof_id})">✓ Approve</button>
+                            <button class="btn btn-sm btn-outline" data-on-click="Jobs.rejectProof(${job.job_id}, ${p.proof_id})">✕ Reject</button>
                         </div>
                     ` : ''}
                 </div>
@@ -410,7 +416,7 @@ const Jobs = {
             Utils.showModal(`
                 <div class="modal-header">
                     <h3>${job.job_number} — ${job.service_name || 'Job'}</h3>
-                    <button class="modal-close" onclick="Utils.closeModal()">✕</button>
+                    <button class="modal-close" data-on-click="Utils.closeModal()">✕</button>
                 </div>
                 <div class="modal-body job-detail-modal">
                     <!-- Status Pipeline -->
@@ -424,13 +430,13 @@ const Jobs = {
                         </div>
                         <div class="info-block">
                             <label>Assigned To</label>
-                            <select id="detail-assigned" class="form-select form-select-sm" onchange="Jobs.quickUpdate(${job.job_id}, 'assigned_to', this.value)">
+                            <select id="detail-assigned" class="form-select form-select-sm" data-on-change="Jobs.quickUpdate(${job.job_id}, 'assigned_to', $value)">
                                 <option value="">Unassigned</option>${userOptions}
                             </select>
                         </div>
                         <div class="info-block">
                             <label>Priority</label>
-                            <select id="detail-priority" class="form-select form-select-sm" onchange="Jobs.quickUpdate(${job.job_id}, 'priority', this.value)">
+                            <select id="detail-priority" class="form-select form-select-sm" data-on-change="Jobs.quickUpdate(${job.job_id}, 'priority', $value)">
                                 ${['Low', 'Normal', 'High', 'Urgent'].map(p => `<option value="${p}" ${p === job.priority ? 'selected' : ''}>${p}</option>`).join('')}
                             </select>
                         </div>
@@ -453,21 +459,21 @@ const Jobs = {
 
                     <!-- Tabs: Proofs & Costs -->
                     <div class="job-tabs">
-                        <button class="tab-btn active" onclick="Jobs.switchTab('proofs')">📋 Proofs (${(job.proofs || []).length})</button>
-                        <button class="tab-btn" onclick="Jobs.switchTab('costs')">💰 Costs (${(job.costs || []).length})</button>
+                        <button class="tab-btn active" data-on-click="Jobs.switchTab('proofs')">📋 Proofs (${(job.proofs || []).length})</button>
+                        <button class="tab-btn" data-on-click="Jobs.switchTab('costs')">💰 Costs (${(job.costs || []).length})</button>
                     </div>
                     <div id="tab-proofs" class="tab-content active">
                         ${proofsHtml}
-                        <button class="btn btn-sm btn-outline" style="margin-top:0.75rem" onclick="Jobs.showAddProofForm(${job.job_id})">+ Upload Proof</button>
+                        <button class="btn btn-sm btn-outline" data-style="margin-top:0.75rem" data-on-click="Jobs.showAddProofForm(${job.job_id})">+ Upload Proof</button>
                     </div>
-                    <div id="tab-costs" class="tab-content" style="display:none">
+                    <div id="tab-costs" class="tab-content" data-style="display:none">
                         ${costsHtml}
-                        <button class="btn btn-sm btn-outline" style="margin-top:0.75rem" onclick="Jobs.showAddCostForm(${job.job_id})">+ Add Cost</button>
+                        <button class="btn btn-sm btn-outline" data-style="margin-top:0.75rem" data-on-click="Jobs.showAddCostForm(${job.job_id})">+ Add Cost</button>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-outline btn-danger" onclick="Jobs.deleteJob(${job.job_id})">Delete</button>
-                    <button class="btn btn-outline" onclick="Utils.closeModal()">Close</button>
+                    <button class="btn btn-outline btn-danger" data-on-click="Jobs.deleteJob(${job.job_id})">Delete</button>
+                    <button class="btn btn-outline" data-on-click="Utils.closeModal()">Close</button>
                 </div>
             `);
         } catch (err) {
@@ -529,28 +535,191 @@ const Jobs = {
 
     // ── PROOFS ──
 
+    /**
+     * Render the inline "Upload Proof" form. Two modes:
+     *   • Local file (default) — <input type="file"> + size/type
+     *     hint. Submits as multipart/form-data so the server pushes
+     *     the bytes to Replit Object Storage.
+     *   • Paste a URL (revealed by clicking the toggle) — keeps the
+     *     legacy v1.0.21 behaviour for designers who upload to Drive
+     *     and want to share a link instead.
+     * Only one of the two inputs is "active" at a time, the other is
+     * hidden so we don't accidentally send both shapes at once.
+     */
     showAddProofForm(jobId) {
         const proofsTab = document.getElementById('tab-proofs');
-        proofsTab.innerHTML += `
-            <div class="inline-form" id="proof-form" style="margin-top:0.75rem; padding:0.75rem; background:var(--bg-secondary); border-radius:var(--radius-md);">
-                <div class="form-group"><label>File URL</label><input type="url" id="proof-url" class="form-input" placeholder="https://drive.google.com/..."></div>
+        if (!proofsTab) return;
+        // Defensive: don't double-render if user clicks twice.
+        if (document.getElementById('proof-form')) return;
+        proofsTab.insertAdjacentHTML('beforeend', `
+            <div class="inline-form" id="proof-form" data-style="margin-top:0.75rem; padding:0.75rem; background:var(--bg-secondary); border-radius:var(--radius-md);">
+                <div class="form-group" id="proof-file-group">
+                    <label>Choose file</label>
+                    <input type="file" id="proof-file" class="form-input"
+                           accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,image/*,application/pdf"
+                           data-on-change="Jobs.onProofFilePicked($el)">
+                    <p class="text-xs text-muted" data-style="margin-top:4px">
+                        PNG, JPG, WEBP, GIF or PDF — up to 10&nbsp;MB.
+                    </p>
+                    <div id="proof-file-pill" class="hidden proof-file-pill" data-style="margin-top:6px;font-size:13px;color:var(--text-secondary)"></div>
+                </div>
+                <div class="form-group hidden" id="proof-url-group">
+                    <label>File URL</label>
+                    <input type="url" id="proof-url" class="form-input" placeholder="https://drive.google.com/...">
+                </div>
                 <div class="form-group"><label>Notes</label><input type="text" id="proof-notes" class="form-input" placeholder="Version notes..."></div>
-                <div class="form-row" style="gap:0.5rem">
-                    <button class="btn btn-sm btn-primary" onclick="Jobs.saveProof(${jobId})">Upload</button>
-                    <button class="btn btn-sm btn-outline" onclick="document.getElementById('proof-form').remove()">Cancel</button>
+                <div class="form-row" data-style="gap:0.5rem;align-items:center;flex-wrap:wrap">
+                    <button class="btn btn-sm btn-primary" id="proof-save-btn" data-on-click="Jobs.saveProof(${jobId})">Upload</button>
+                    <button class="btn btn-sm btn-outline" data-on-click="Dom.removeById('proof-form')">Cancel</button>
+                    <button type="button" class="btn btn-sm btn-link" id="proof-mode-toggle"
+                            data-style="margin-left:auto;font-size:12px"
+                            data-on-click="Jobs.toggleProofMode()">Or paste a URL instead</button>
                 </div>
             </div>
-        `;
+        `);
+    },
+
+    /** Toggle between "Choose file" and "Paste URL" modes. */
+    toggleProofMode() {
+        const fileGroup = document.getElementById('proof-file-group');
+        const urlGroup = document.getElementById('proof-url-group');
+        const toggle = document.getElementById('proof-mode-toggle');
+        if (!fileGroup || !urlGroup || !toggle) return;
+        const showingFile = !fileGroup.classList.contains('hidden');
+        if (showingFile) {
+            fileGroup.classList.add('hidden');
+            urlGroup.classList.remove('hidden');
+            toggle.textContent = 'Or upload a file from this device';
+            // Clear file selection so it doesn't sneak through on save.
+            const f = document.getElementById('proof-file');
+            if (f) f.value = '';
+            const pill = document.getElementById('proof-file-pill');
+            if (pill) { pill.classList.add('hidden'); pill.textContent = ''; }
+        } else {
+            urlGroup.classList.add('hidden');
+            fileGroup.classList.remove('hidden');
+            toggle.textContent = 'Or paste a URL instead';
+            const u = document.getElementById('proof-url');
+            if (u) u.value = '';
+        }
+    },
+
+    /** Open an internally-hosted proof file. The bytes live behind a
+     *  Bearer-protected endpoint, so a plain <a href> click would 401.
+     *  We intercept, fetch with auth headers, then open the bytes as a
+     *  short-lived blob URL in a new tab. External (paste-URL) proofs
+     *  stay plain anchors and are not routed through here. */
+    async openProofFile(event, jobId, proofId) {
+        if (event && event.preventDefault) event.preventDefault();
+        try {
+            const headers = API._baseHeaders();
+            delete headers['Content-Type']; // GET, no body
+            const url = `${API._resolveBaseUrl()}/jobs/${jobId}/proofs/${proofId}/file`;
+            const res = await fetch(url, { method: 'GET', headers });
+            if (res.status === 401) {
+                API.clearToken();
+                if (typeof App !== 'undefined' && App.showLogin) App.showLogin();
+                Utils.toast('Session expired. Please sign in again.', 'error');
+                return;
+            }
+            if (!res.ok) {
+                Utils.toast(`Could not open file (${res.status}).`, 'error');
+                return;
+            }
+            const blob = await res.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const win = window.open(blobUrl, '_blank', 'noopener');
+            if (!win) {
+                // Popup blocked — fall back to a same-tab navigation.
+                window.location.href = blobUrl;
+            }
+            // Release the blob URL after a minute; the new tab has
+            // already loaded the bytes by then.
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+        } catch (err) {
+            console.error('[openProofFile]', err);
+            Utils.toast('Could not open file.', 'error');
+        }
+    },
+
+    /** Show a small filename + size pill once the user picks a file.
+     *  Uses textContent + class toggle (no inline style mutation) to
+     *  stay strict-CSP compliant. */
+    onProofFilePicked(el) {
+        const pill = document.getElementById('proof-file-pill');
+        if (!pill) return;
+        const f = el && el.files && el.files[0];
+        if (!f) {
+            pill.classList.add('hidden');
+            pill.classList.remove('proof-file-pill-error');
+            pill.textContent = '';
+            return;
+        }
+        const kb = (f.size / 1024).toFixed(0);
+        const tooBig = f.size > 10 * 1024 * 1024;
+        pill.textContent = `📎 ${f.name} · ${kb} KB${tooBig ? ' — too large (10 MB max)' : ''}`;
+        pill.classList.remove('hidden');
+        pill.classList.toggle('proof-file-pill-error', tooBig);
     },
 
     async saveProof(jobId) {
-        const file_url = document.getElementById('proof-url').value;
         const notes = document.getElementById('proof-notes').value;
+        const fileGroup = document.getElementById('proof-file-group');
+        const fileInput = document.getElementById('proof-file');
+        const urlInput = document.getElementById('proof-url');
+        const saveBtn = document.getElementById('proof-save-btn');
+        const useFile = fileGroup && !fileGroup.classList.contains('hidden');
+        const file = fileInput && fileInput.files && fileInput.files[0];
+
+        if (useFile && !file) {
+            Utils.toast('Pick a file first, or switch to URL mode.', 'warning');
+            return;
+        }
+        if (!useFile && !(urlInput && urlInput.value.trim())) {
+            Utils.toast('Paste a URL first, or switch to file mode.', 'warning');
+            return;
+        }
+        if (useFile && file && file.size > 10 * 1024 * 1024) {
+            Utils.toast('File too large. Maximum size is 10 MB.', 'error');
+            return;
+        }
+
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Uploading…'; }
         try {
-            await API.post(`/jobs/${jobId}/proofs`, { file_url, notes });
+            if (useFile) {
+                // Multipart upload: we can't go through API.post() because
+                // it JSON-stringifies the body and forces a JSON
+                // Content-Type. Instead we reuse API's auth/baseUrl/device
+                // headers and let the browser set the multipart boundary
+                // by *omitting* Content-Type from the headers we pass.
+                const fd = new FormData();
+                fd.append('file', file);
+                if (notes) fd.append('notes', notes);
+                const headers = API._baseHeaders();
+                delete headers['Content-Type']; // critical for multipart
+                const url = `${API._resolveBaseUrl()}/jobs/${jobId}/proofs`;
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers,
+                    body: fd,
+                });
+                if (res.status === 401) {
+                    API.clearToken();
+                    if (typeof App !== 'undefined' && App.showLogin) App.showLogin();
+                    throw new Error('Session expired. Please sign in again.');
+                }
+                if (!res.ok) {
+                    let msg = `Upload failed (${res.status})`;
+                    try { const j = await res.json(); if (j && j.error) msg = j.error; } catch (_) {}
+                    throw new Error(msg);
+                }
+            } else {
+                await API.post(`/jobs/${jobId}/proofs`, { file_url: urlInput.value.trim(), notes });
+            }
             Utils.toast('Proof uploaded!', 'success');
             this.showDetailModal(jobId); // Refresh
         } catch (err) {
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Upload'; }
             Utils.toast(err.message || 'Failed to upload proof.', 'error');
         }
     },
@@ -578,7 +747,7 @@ const Jobs = {
     showAddCostForm(jobId) {
         const costsTab = document.getElementById('tab-costs');
         costsTab.innerHTML += `
-            <div class="inline-form" id="cost-form" style="margin-top:0.75rem; padding:0.75rem; background:var(--bg-secondary); border-radius:var(--radius-md);">
+            <div class="inline-form" id="cost-form" data-style="margin-top:0.75rem; padding:0.75rem; background:var(--bg-secondary); border-radius:var(--radius-md);">
                 <div class="form-row">
                     <div class="form-group">
                         <label>Type</label>
@@ -596,9 +765,9 @@ const Jobs = {
                     <div class="form-group"><label>Qty</label><input type="number" id="cost-qty" class="form-input" value="1" min="1"></div>
                     <div class="form-group"><label>Unit Cost (K)</label><input type="number" id="cost-unit" class="form-input" step="0.01" min="0"></div>
                 </div>
-                <div class="form-row" style="gap:0.5rem">
-                    <button class="btn btn-sm btn-primary" onclick="Jobs.saveCost(${jobId})">Save Cost</button>
-                    <button class="btn btn-sm btn-outline" onclick="document.getElementById('cost-form').remove()">Cancel</button>
+                <div class="form-row" data-style="gap:0.5rem">
+                    <button class="btn btn-sm btn-primary" data-on-click="Jobs.saveCost(${jobId})">Save Cost</button>
+                    <button class="btn btn-sm btn-outline" data-on-click="Dom.removeById('cost-form')">Cancel</button>
                 </div>
             </div>
         `;
@@ -619,3 +788,6 @@ const Jobs = {
         }
     }
 };
+
+// Expose to global scope for delegated event handlers (data-on-* attributes).
+window.Jobs = Jobs;

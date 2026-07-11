@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const authorize = require('../middleware/rbac');
 const auditLog = require('../middleware/audit');
+const idempotency = require('../middleware/idempotency');
 const ctrl = require('../controllers/settingsController');
 
 // All settings routes require authentication
@@ -11,6 +12,6 @@ const ctrl = require('../controllers/settingsController');
 router.get('/', auth, ctrl.getSettings);
 
 // PUT /api/settings/:key - Update a setting (Director/Admin only)
-router.put('/:key', auth, authorize('director'), auditLog('UPDATE_SETTING', 'system_settings'), ctrl.updateSetting);
+router.put('/:key', auth, authorize('director'), idempotency(), auditLog('UPDATE_SETTING', 'system_settings'), ctrl.updateSetting);
 
 module.exports = router;

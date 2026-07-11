@@ -13,16 +13,8 @@ const App = {
     },
 
     async init() {
-        // Hide fallback loading
         const fallback = document.getElementById('fallback-loading');
         if (fallback) fallback.style.display = 'none';
-
-        // DIAGNOSTIC: Catch startup errors
-        window.onerror = function (msg, url, line, col, error) {
-            alert(`CRITICAL ERROR:\n${msg}\nAt: ${url}:${line}:${col}\n${error?.stack || ''}`);
-            return false;
-        };
-        console.log('App starting...');
 
         // Setup event listeners first (so login form works)
         this.setupAuth();
@@ -30,7 +22,7 @@ const App = {
         this.setupSidebar();
         this.setupOfflineMode();
 
-        // BUG 1 FIX: Decode JWT payload and check expiry BEFORE trusting localStorage
+        // Decode JWT payload and check expiry BEFORE trusting session storage.
         const token = sessionStorage.getItem('zspos_token');
         const user = Utils.getUser();
 
@@ -39,33 +31,47 @@ const App = {
             return;
         }
 
-        // Decode JWT (without verification — just to read expiry field)
+        // Read JWT expiry without verifying — verification is done server-side.
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));
             const nowSecs = Math.floor(Date.now() / 1000);
             if (payload.exp && payload.exp < nowSecs) {
-                // Token is expired client-side — clear immediately, no flash
                 console.warn('[Auth] Token expired, forcing logout.');
                 API.clearToken();
                 this.showLogin();
                 return;
             }
         } catch (e) {
-            // Malformed token — clear it
             console.warn('[Auth] Malformed token, forcing logout.', e);
             API.clearToken();
             this.showLogin();
             return;
         }
 
-        // BUG 6 FIX: Verify token server-side before rendering the app shell
+        // Verify token server-side before rendering the app shell.
+        // If we're offline (or the request fails with a network error),
+        // trust the JWT-expiry check we already did above and render
+        // the app from cache — otherwise the user gets kicked back to
+        // the login screen and offline mode is unusable.
         API.token = token;
+        const isNetErr = (err) => {
+            if (!navigator.onLine) return true;
+            if (err instanceof TypeError) return true;
+            const m = err && err.message ? err.message : '';
+            return m.includes('Failed to fetch') ||
+                   m.includes('NetworkError') ||
+                   m.includes('ERR_INTERNET_DISCONNECTED') ||
+                   m.includes('no cached data');
+        };
         try {
             await API.get('/auth/me');
-            // Server confirmed token is valid — safe to show the app
             this.showApp(user);
         } catch (err) {
-            // Server rejected token (expired, revoked, wrong secret, etc.)
+            if (isNetErr(err)) {
+                console.warn('[Auth] Offline at boot — using cached session.', err);
+                this.showApp(user);
+                return;
+            }
             console.warn('[Auth] Server rejected token, forcing logout.', err);
             API.clearToken();
             this.showLogin();
@@ -73,24 +79,30 @@ const App = {
     },
 
     setupOfflineMode() {
-        // Register Service Worker
+        // Register service-worker v6. It precaches the app shell so the
+        // POS boots fully offline (login form, sidebar, all pages),
+        // and falls back to cached HTML/JS/CSS when the network is
+        // unreachable. The SW deliberately omits clients.claim() and
+        // client.navigate() to avoid the v4 multi-iframe reload loop.
+        // We skip registration inside the canvas mockup-sandbox iframes
+        // (any URL containing '/preview/') as an extra safety net.
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then(reg => console.log('SW Registered:', reg.scope))
-                    .catch(err => console.log('SW Registration Failed:', err));
-            });
+            const inSandbox = /\/preview\//.test(location.pathname);
+            if (!inSandbox) {
+                navigator.serviceWorker
+                    .register('/service-worker.js', { updateViaCache: 'none' })
+                    .catch((err) => console.warn('[SW] register failed:', err && err.message));
+            }
         }
 
         // Online/Offline Listeners
         window.addEventListener('online', () => {
             this.updateOnlineStatus(true);
-            // Replay any queued operations in order: mutations first, then sales
-            API.syncOfflineMutations().catch(e => console.warn('[Sync] mutations:', e));
-            API.syncOfflineSales().catch(e => console.warn('[Sync] sales:', e));
-            // New: Trigger the local sidecar's PostgreSQL -> Cloud sync
-            if (typeof API.triggerSidecarSync === 'function') {
-                API.triggerSidecarSync().catch(e => console.warn('[Sync] sidecar:', e));
+            // Single drain via the sync engine (sales + mutations in
+            // one batched /api/sync/push, with idempotency replay).
+            if (typeof Sync !== 'undefined') {
+                Sync.flush().catch((e) => console.warn('[Sync] flush:', e));
+                Sync.refresh().catch((e) => console.warn('[Sync] refresh:', e));
             }
         });
         window.addEventListener('offline', () => {
@@ -102,27 +114,22 @@ const App = {
 
 
     updateOnlineStatus(isOnline) {
-        const statusEl = document.getElementById('network-status');
-        const dotEl = document.getElementById('network-dot');
-        const textEl = document.getElementById('network-text');
-
-        if (!statusEl) return;
+        let badge = document.getElementById('offline-badge');
+        if (!badge) {
+            // Create badge
+            badge = document.createElement('div');
+            badge.id = 'offline-badge';
+            badge.className = 'fixed bottom-4 right-4 bg-red-600 text-white px-3 py-1 rounded shadow-lg z-50 text-sm font-bold hidden';
+            badge.textContent = '⚠️ You are Offline';
+            document.body.appendChild(badge);
+        }
 
         if (isOnline) {
-            statusEl.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 mr-2 text-sm font-semibold transition-colors duration-300';
-            dotEl.className = 'w-2 h-2 rounded-full bg-green-400 animate-pulse';
-            textEl.textContent = 'Online';
+            badge.classList.add('hidden');
             Utils.toast('You are back online!', 'success');
-
-            // Aggressively cache catalog
-            if (window.API && typeof API.syncMasterCatalog === 'function') {
-                API.syncMasterCatalog();
-            }
         } else {
-            statusEl.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 mr-2 text-sm font-semibold transition-colors duration-300';
-            dotEl.className = 'w-2 h-2 rounded-full bg-red-500';
-            textEl.textContent = 'Offline';
-            Utils.toast('You are offline. Running from local cache.', 'warning');
+            badge.classList.remove('hidden');
+            Utils.toast('You are offline. Offline mode enabled.', 'warning');
         }
     },
 
@@ -163,23 +170,99 @@ const App = {
     },
 
     showLogin() {
-        document.getElementById('login-screen').classList.remove('hidden');
+        const screen = document.getElementById('login-screen');
+        // Idempotency guard: api.js calls showLogin() on every 401,
+        // which (during a noisy SSE / stale-token storm) used to wipe
+        // whatever the cashier was typing. Bail if the screen is
+        // already up so the username/password fields keep their
+        // in-progress value and focus.
+        const wasHidden = screen.classList.contains('hidden');
+        screen.classList.remove('hidden');
         document.getElementById('app-shell').classList.add('hidden');
-        document.getElementById('login-username').value = '';
-        document.getElementById('login-password').value = '';
-        document.getElementById('login-error').textContent = '';
+        if (wasHidden) {
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+            document.getElementById('login-error').textContent = '';
+        }
         this.stopClock();
     },
 
-    // BUG 2 FIX: Previously this used wrong localStorage keys ('token'/'user' instead of
-    // 'zspos_token'/'zspos_user'), so idle-timer logouts left the real token in storage.
-    // Now delegates to API.clearToken() which always uses the correct key names.
+    // Delegates to API.clearToken() so the correct sessionStorage keys
+    // ('zspos_token' / 'zspos_user') are always used.
     logout() {
         if (this.idleTimer) clearTimeout(this.idleTimer);
+        if (this._permsPoll) { clearInterval(this._permsPoll); this._permsPoll = null; }
         API.clearToken();
         this.stopClock();
         this.showLogin();
         Utils.toast('Session expired due to inactivity.', 'warning');
+    },
+
+    /** Fetch this user's effective permission set from the open
+     *  /auth/me/permissions endpoint. Director comes back as a wildcard.
+     *  Failure is non-fatal — we leave the existing set in place so a
+     *  transient network blip doesn't strip the sidebar. */
+    async refreshPermissions() {
+        // Hydrate from localStorage on first call so the sidebar is
+        // never empty offline — even on a fresh boot where no /auth/
+        // me/permissions response has landed yet.
+        if (!this.state.perms || this.state.perms.size === 0) {
+            try {
+                const raw = localStorage.getItem('zspos_perms_cache');
+                if (raw) {
+                    const cached = JSON.parse(raw);
+                    this.state.permsWildcard = !!cached.wildcard;
+                    this.state.perms = new Set(Array.isArray(cached.permissions) ? cached.permissions : []);
+                }
+            } catch (_) { /* ignore */ }
+        }
+        try {
+            const resp = await API.get('/auth/me/permissions');
+            if (!resp) return;
+            this.state.permsWildcard = !!resp.wildcard;
+            this.state.perms = new Set(Array.isArray(resp.permissions) ? resp.permissions : []);
+            try {
+                localStorage.setItem('zspos_perms_cache', JSON.stringify({
+                    wildcard: this.state.permsWildcard,
+                    permissions: Array.from(this.state.perms),
+                }));
+            } catch (_) { /* quota — ignore */ }
+        } catch (e) {
+            console.warn('[Perms] refresh failed (keeping cached set):', e && e.message);
+        }
+    },
+
+    /** Apply the current permission + role + module-toggle state to
+     *  every .nav-item. Idempotent — safe to call on every navigation
+     *  or poll tick. */
+    applyNavGates() {
+        const user = (this.state && this.state.currentUser) || {};
+        const settings = this.settings || {};
+        const wildcard = !!(this.state && this.state.permsWildcard);
+        const perms = (this.state && this.state.perms) || new Set();
+        document.querySelectorAll('.nav-item').forEach(item => {
+            const roles = (item.dataset.roles || '').split(',').map(s => s.trim()).filter(Boolean);
+            const moduleKey = item.dataset.module;
+            const permNames = (item.dataset.permission || '')
+                .split(',').map(s => s.trim()).filter(Boolean);
+            let visible = false;
+            if (wildcard || roles.includes(user.role)) visible = true;
+            if (!visible && permNames.length) {
+                visible = permNames.some(p => perms.has(p));
+            }
+            if (moduleKey) {
+                const isEnabled = settings[moduleKey] === true || settings[moduleKey] === 'true';
+                if (!isEnabled) visible = false;
+            }
+            item.style.display = visible ? '' : 'none';
+        });
+        // Hide empty nav groups
+        document.querySelectorAll('.nav-group').forEach(group => {
+            const items = group.querySelectorAll('.nav-item');
+            let anyVisible = false;
+            items.forEach(it => { if (it.style.display !== 'none') anyVisible = true; });
+            group.style.display = anyVisible ? '' : 'none';
+        });
     },
 
     startIdleTimer(minutes) {
@@ -223,9 +306,131 @@ const App = {
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('app-shell').classList.remove('hidden');
 
+        // Register this install with the server (idempotent — safe to
+        // call on every login). The returned UUID is then attached as
+        // X-Device-Id on every subsequent mutating request.
+        if (typeof API.ensureDeviceRegistered === 'function') {
+            API.ensureDeviceRegistered().catch((e) =>
+                console.warn('[Sync] device register failed:', e.message)
+            );
+        }
+        // Drain anything queued from before this login + pull deltas.
+        if (typeof Sync !== 'undefined' && navigator.onLine) {
+            Sync.flush().catch(() => {});
+            Sync.refresh().catch(() => {});
+        }
+
+        // v1.0.43 — proactively warm the offline cache so a user who
+        // logs in online and *then* loses connectivity can still open
+        // POS / Inventory / Customers / Sales without having visited
+        // each page first. Each request is fire-and-forget and any
+        // failure is swallowed so a missing endpoint never blocks the
+        // app shell from rendering.
+        if (navigator.onLine) {
+            const warmEndpoints = [
+                // Core lookups
+                '/products',
+                '/products?limit=1000',
+                '/services',
+                '/customers',
+                '/suppliers',
+                '/inventory',
+                '/settings',
+                '/payments',
+                '/users',
+                '/loyalty',
+                '/permissions',
+                '/permissions/matrix',
+                '/auth/me',
+                '/auth/me/permissions',
+                '/currency/rates',
+                '/notifications?limit=20',
+                '/jobs?status=open',
+                '/quotes?limit=50',
+                '/invoices?limit=50',
+                '/promotions',
+                '/cash/sessions?limit=10',
+                // Dashboard reports — these are the ones the Dashboard
+                // page actually requests; warm a dated copy for today
+                // so a fresh offline open of the dashboard finds data.
+                '/reports/summary',
+                '/reports/production-status',
+                '/reports/low-stock',
+                '/reports/dashboard-charts',
+                '/reports/line-removal-alerts',
+                '/ai/insights',
+                '/ai/fraud-alerts',
+            ];
+            setTimeout(() => {
+                // Fire in small batches so we don't slam the server
+                // with 30+ parallel requests at login. Each is fire-
+                // and-forget; failures are swallowed.
+                let i = 0;
+                const tick = () => {
+                    const batch = warmEndpoints.slice(i, i + 4);
+                    if (!batch.length) return;
+                    Promise.allSettled(batch.map((ep) => API.get(ep))).then(() => {
+                        i += 4;
+                        setTimeout(tick, 250);
+                    });
+                };
+                tick();
+            }, 800);
+        }
+
+        // v1.0.33 — periodic pull so other devices' changes appear
+        // without waiting for an online/offline event. The user reported
+        // "sync indicator green but changes aren't showing" — root cause
+        // was that Sync.refresh() only fired on app start and on
+        // network reconnect. Now we pull every 60s while logged in and
+        // online, and re-render the visible page when the delta is
+        // non-empty so the cashier doesn't have to navigate away and
+        // back to see fresh data.
+        if (!this._syncPullTimer && typeof Sync !== 'undefined') {
+            this._syncPullTimer = setInterval(() => {
+                if (!navigator.onLine) return;
+                if (!sessionStorage.getItem('zspos_token')) return;
+                Sync.flush()
+                    .then(() => Sync.refresh())
+                    .then((data) => {
+                        if (!data) return;
+                        const total =
+                            (data.sales || []).length +
+                            (data.products || []).length +
+                            (data.customers || []).length;
+                        if (total > 0) {
+                            document.dispatchEvent(new CustomEvent('zspos:sync:delta', {
+                                detail: { counts: data },
+                            }));
+                            // Re-render the current page so fresh rows
+                            // appear — BUT skip if the operator is in
+                            // the middle of something. A blanket
+                            // navigate() was wiping the POS cart,
+                            // closing the user-permissions modal mid-
+                            // edit, etc. every 60s.
+                            const busy =
+                                document.querySelector('.modal.is-open, .modal.show, .modal[data-open="true"]') ||
+                                document.querySelector('.pos-layout') ||
+                                document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+                            if (!busy) {
+                                try { this.navigate(window.location.hash); }
+                                catch (e) { console.warn('[Sync] auto-rerender failed:', e); }
+                            } else {
+                                console.log('[Sync] delta received but page is busy — skipping auto-rerender');
+                            }
+                        }
+                    })
+                    .catch(() => {});
+            }, 60_000);
+        }
+
         // Update sidebar user display
         document.getElementById('user-name').textContent = user.full_name;
-        document.getElementById('sidebar-user-role').textContent = user.role;
+        // Sidebar role label was renamed from #user-role to #current-user-role
+        // so it doesn't collide with the <select id="user-role"> inside the
+        // Add/Edit User modal (getElementById would return the SPAN first,
+        // and span.value is undefined → "Missing required fields: Role").
+        document.getElementById('current-user-role').textContent = user.role;
         document.getElementById('user-avatar').textContent = user.full_name.charAt(0).toUpperCase();
 
         // Update header user display
@@ -245,14 +450,6 @@ const App = {
             if (!this.state.settings) {
                 this.state.settings = await API.get('/settings');
             }
-            // Proactively cache all products/services/customers into IndexedDB on startup
-            if (navigator.onLine && typeof API.syncMasterCatalog === 'function') {
-                API.syncMasterCatalog();
-                // New: Also trigger sidecar sync on app startup if online
-                if (typeof API.triggerSidecarSync === 'function') {
-                    API.triggerSidecarSync();
-                }
-            }
             this.settings = this.state.settings;
 
             // Initialize Idle Timer if configured
@@ -271,25 +468,32 @@ const App = {
         }
 
 
-        // Filter nav items based on role AND settings
-        document.querySelectorAll('.nav-item').forEach(item => {
-            const roles = (item.dataset.roles || '').split(',');
-            const moduleKey = item.dataset.module;
-
-            let visible = false;
-            // Check role access
-            if (roles.includes(user.role) || user.role === 'director') {
-                visible = true;
-            }
-
-            // Check module toggle
-            if (moduleKey && this.settings) {
-                const isEnabled = this.settings[moduleKey] === true || this.settings[moduleKey] === 'true';
-                if (!isEnabled) visible = false;
-            }
-
-            item.style.display = visible ? '' : 'none';
-        });
+        // v1.0.40 — permission overhaul. Sidebar gates on the user's
+        // *effective* permission set (role defaults ∪ per-user grants
+        // − per-user revokes). Fetched from /auth/me/permissions which
+        // any authenticated user can call (the older /users/:id/permissions
+        // is director-only and silently 403'd for cashiers, which is why
+        // grants weren't unlocking anything in v1.0.39). Re-fetched on
+        // every navigation AND on a 30s safety poll so director changes
+        // appear in the affected user's sidebar without a relogin.
+        this.state = this.state || {};
+        this.state.perms = new Set();
+        this.state.permsWildcard = false;
+        this.state.currentUser = user;
+        await this.refreshPermissions();
+        this.hasPermission = (name) => {
+            if (!name) return true;
+            if (this.state.permsWildcard) return true;
+            return this.state.perms.has(name);
+        };
+        this.applyNavGates();
+        // Safety net: poll every 30 s so a permission change reaches
+        // even a user who is sitting idle on one page. Cheap call —
+        // returns a small JSON list. Cleared on logout.
+        if (this._permsPoll) clearInterval(this._permsPoll);
+        this._permsPoll = setInterval(() => {
+            this.refreshPermissions().then(() => this.applyNavGates());
+        }, 30000);
 
         // Hide empty groups
         document.querySelectorAll('.nav-group').forEach(group => {
@@ -390,7 +594,15 @@ const App = {
     },
 
     navigate(hash) {
-        const page = hash.replace('#/', '') || 'dashboard';
+        const raw = hash.replace('#/', '') || 'dashboard';
+
+        // v1.0.24 — deep-link support for "#/jobs/<uuid>" coming from
+        // the email/SMS/WhatsApp assignee notifications. Treat the
+        // first segment as the page and any trailing segment as a
+        // record id we hand off to the page module after it renders.
+        const slash    = raw.indexOf('/');
+        const page     = slash === -1 ? raw : raw.slice(0, slash);
+        const recordId = slash === -1 ? null : raw.slice(slash + 1);
 
         // Update active nav
         document.querySelectorAll('.nav-item').forEach(item => {
@@ -408,6 +620,29 @@ const App = {
 
         this.currentPage = page;
         this.loadPage(page);
+
+        // v1.0.40 — refresh permissions on every navigation so a director's
+        // grant/revoke shows up within a click for the affected user.
+        // Fire-and-forget; result is applied as soon as it arrives.
+        if (typeof this.refreshPermissions === 'function') {
+            this.refreshPermissions().then(() => this.applyNavGates());
+        }
+
+        // After the page module mounts, dispatch the trailing id to
+        // the right module's "open detail" handler. Wrapped in a
+        // microtask + try/catch so a missing module never breaks the
+        // top-level navigation.
+        if (recordId) {
+            setTimeout(() => {
+                try {
+                    if (page === 'jobs' && typeof Jobs !== 'undefined' && Jobs.showDetailModal) {
+                        Jobs.showDetailModal(recordId);
+                    }
+                } catch (e) {
+                    console.warn('[App.navigate] deep-link handler failed', e);
+                }
+            }, 0);
+        }
     },
 
     async loadPage(page) {
@@ -459,6 +694,13 @@ const App = {
             case 'quotes':
                 Quotes.render(container);
                 break;
+            case 'invoices':
+                if (typeof Invoices === 'undefined') {
+                    container.innerHTML = '<div class="alert alert-danger">Invoices module failed to load. Please check console.</div>';
+                } else {
+                    Invoices.render(container);
+                }
+                break;
             case 'loyalty':
                 Loyalty.render(container);
                 break;
@@ -470,6 +712,9 @@ const App = {
                 break;
             case 'settings':
                 Settings.render(container);
+                break;
+            case 'profile':
+                Profile.render(container);
                 break;
             case 'daily-sales':
                 DailySales.render(container);
@@ -493,99 +738,108 @@ const App = {
             case 'credit-orders':
                 CreditOrders.render(container);
                 break;
+            case 'notifications':
+                Notifications.render(container);
+                break;
             default:
                 container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📄</div><p>Page not found</p></div>`;
+        }
+
+        // Page renders replace the .header-actions div, which destroys the
+        // notification bell. Re-inject it so the badge persists across nav.
+        if (this._user) {
+            this.setupNotifications(this._user);
         }
     },
 
     // ── Notifications ──
+    /**
+     * The notification bell + badge now live statically in the top header
+     * (index.html). All this hook does is keep the badge fresh and start
+     * the polling loop — clicking the bell navigates to #/notifications.
+     */
     async setupNotifications(user) {
-        // Create UI elements if they don't exist
-        if (!document.getElementById('notification-bell')) {
-            const headerActions = document.querySelector('.header-actions');
-            if (headerActions) {
-                const bellContainer = document.createElement('div');
-                bellContainer.className = 'relative';
-                bellContainer.innerHTML = `
-                    <button id="notification-bell" class="p-2 text-white/70 hover:text-white relative">
-                        <span class="material-icons-outlined">notifications</span>
-                        <span id="notification-badge" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full hidden"></span>
-                    </button>
-                    <div id="notification-dropdown" class="absolute right-0 top-full mt-2 w-80 bg-slate-800 border border-white/10 rounded shadow-xl hidden z-50">
-                        <div class="p-3 border-b border-white/10 flex justify-between items-center">
-                            <h3 class="font-bold text-sm">Notifications</h3>
-                            <button onclick="App.markAllRead()" class="text-xs text-primary hover:underline">Mark all read</button>
-                        </div>
-                        <div id="notification-list" class="max-h-64 overflow-y-auto">
-                            <div class="p-4 text-center text-white/50 text-sm">No new notifications</div>
-                        </div>
-                    </div>
-                `;
-                headerActions.insertBefore(bellContainer, headerActions.firstChild);
+        // Cache so loadPage() can re-call us after a page render.
+        this._user = user || this._user;
 
-                // Toggle dropdown
-                document.getElementById('notification-bell').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    document.getElementById('notification-dropdown').classList.toggle('hidden');
-                });
-
-                // Close on click outside
-                document.addEventListener('click', () => {
-                    document.getElementById('notification-dropdown')?.classList.add('hidden');
-                });
-
-                document.getElementById('notification-dropdown').addEventListener('click', (e) => e.stopPropagation());
-            }
-        }
-
+        // Refresh the badge count immediately.
         this.checkNotifications();
-        // Poll every minute
-        setInterval(() => this.checkNotifications(), 60000);
+
+        // Set up the polling loop only once per session.
+        if (!this._notifPollStarted) {
+            this._notifPollStarted = true;
+            setInterval(() => this.checkNotifications(), 60000);
+        }
     },
 
+    /** Bell click → navigate to the dedicated Notifications page. */
+    openNotifications() {
+        window.location.hash = '#/notifications';
+    },
+
+    /** Always-visible "Update" button in the header. Talks to the same
+     *  ZachiOTA bridge as Settings → App updates so cashiers on any
+     *  page can pull the latest web bundle without hunting through
+     *  settings. Status messages render into #header-update-status. */
+    async checkForUpdatesFromHeader() {
+        const btn = document.getElementById('header-update-btn');
+        const status = document.getElementById('header-update-status');
+        const set = (msg) => { if (status) status.textContent = msg || ''; };
+
+        if (!window.ZachiOTA || typeof window.ZachiOTA.checkAndApply !== 'function') {
+            set('Update bridge not ready — refresh.');
+            return;
+        }
+        if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
+        try {
+            await window.ZachiOTA.checkAndApply((s) => {
+                switch (s.stage) {
+                    case 'checking':    set('Checking…'); break;
+                    case 'up-to-date':  set(`Up to date${s.current ? ' (v' + s.current + ')' : ''}`); break;
+                    case 'downloading': set(`Downloading v${s.version}…`); if (btn) btn.textContent = 'Downloading…'; break;
+                    case 'applying':    set(`Installing v${s.version}…`); if (btn) btn.textContent = 'Installing…'; break;
+                    case 'reloading':   set(`Restarting v${s.version}…`); if (btn) btn.textContent = 'Restarting…'; break;
+                    case 'error':       set('Update failed: ' + (s.message || 'unknown')); break;
+                }
+            });
+        } catch (err) {
+            set('Update failed: ' + ((err && err.message) || String(err)));
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = 'Update'; }
+            // Auto-clear the inline status after 8s so the header stays tidy.
+            setTimeout(() => set(''), 8000);
+        }
+    },
+
+    /** Refresh the bell badge. Shows the unread count (capped at "9+")
+     *  in a red pill, and switches the bell icon itself to the alert
+     *  colour so the change is obvious at a glance. */
     async checkNotifications() {
         try {
             const notifications = await API.get('/notifications/unread');
             const badge = document.getElementById('notification-badge');
-            const list = document.getElementById('notification-list');
-
-            if (!badge || !list) return; // Prevent crash if elements missing
-
-            if (notifications && notifications.length > 0) {
+            const bell  = document.getElementById('notification-bell');
+            if (!badge || !bell) return;
+            const n = (notifications && notifications.length) || 0;
+            if (n > 0) {
+                badge.textContent = n > 9 ? '9+' : String(n);
                 badge.classList.remove('hidden');
-                list.innerHTML = notifications.map(n => `
-                    <div class="p-3 border-b border-white/5 hover:bg-white/5 cursor-pointer" onclick="App.markRead('${n.id}')">
-                        <div class="text-sm text-white/90">${n.message}</div>
-                        <div class="text-xs text-white/50 mt-1">${new Date(n.created_at).toLocaleString()}</div>
-                    </div>
-                `).join('');
+                bell.classList.add('has-unread');
+                bell.setAttribute('title', `${n} unread notification${n === 1 ? '' : 's'}`);
             } else {
+                badge.textContent = '0';
                 badge.classList.add('hidden');
-                list.innerHTML = '<div class="p-4 text-center text-white/50 text-sm">No new notifications</div>';
+                bell.classList.remove('has-unread');
+                bell.setAttribute('title', 'View notifications');
             }
         } catch (err) {
             console.error('Failed to check notifications:', err);
         }
     },
-
-    async markRead(id) {
-        try {
-            await API.put(`/notifications/${id}/read`);
-            this.checkNotifications();
-        } catch (err) {
-            console.error(err);
-        }
-    },
-
-    async markAllRead() {
-        try {
-            await API.put('/notifications/read-all');
-            this.checkNotifications();
-        } catch (err) {
-            console.error(err);
-        }
-    }
 };
 
 // Boot the app
 document.addEventListener('DOMContentLoaded', () => App.init());
+
+// Expose to global scope for delegated event handlers (data-on-* attributes).
+window.App = App;

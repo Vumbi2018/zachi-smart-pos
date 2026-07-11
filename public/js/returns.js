@@ -6,7 +6,7 @@ const Returns = {
                     <h1 class="page-title">Returns & Exchanges</h1>
                     <p class="text-secondary">Process customer returns, refunds, and store credits.</p>
                 </div>
-                <button class="btn btn-primary" onclick="Returns.openWizard()">
+                <button class="btn btn-primary" data-on-click="Returns.openWizard()">
                     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 5v14M5 12h14"/>
                     </svg>
@@ -15,8 +15,8 @@ const Returns = {
             </div>
 
             <div class="tabs mb-6">
-                <button class="tab active" onclick="Returns.filterStatus('Pending')">Pending Approval</button>
-                <button class="tab" onclick="Returns.filterStatus('Processed')">Processed History</button>
+                <button class="tab active" data-on-click="Returns.filterStatus('Pending')">Pending Approval</button>
+                <button class="tab" data-on-click="Returns.filterStatus('Processed')">Processed History</button>
             </div>
 
             <div class="card">
@@ -69,7 +69,7 @@ const Returns = {
         }
 
         tbody.innerHTML = items.map(r => `
-            <tr class="hover:bg-slate-50 cursor-pointer" onclick="Returns.openDetail('${r.return_id}')">
+            <tr class="hover:bg-slate-50 cursor-pointer" data-on-click="Returns.openDetail('${r.return_id}')">
                 <td class="font-medium">${r.return_number}</td>
                 <td>${new Date(r.created_at).toLocaleDateString()}</td>
                 <td>${r.sale_number}</td>
@@ -78,7 +78,7 @@ const Returns = {
                 <td>${Utils.formatCurrency(r.refund_amount)}</td>
                 <td><span class="badge badge-${r.status === 'Processed' ? 'success' : 'warning'}">${r.status}</span></td>
                 <td>
-                    <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); Returns.openDetail('${r.return_id}')">View</button>
+                    <button class="btn btn-sm btn-outline" data-on-click="Returns.openDetail('${r.return_id}')">View</button>
                 </td>
             </tr>
         `).join('');
@@ -96,7 +96,7 @@ const Returns = {
         Utils.showModal(`
             <div class="modal-header">
                 <h2 class="modal-title">New Return Request</h2>
-                <button class="modal-close" onclick="Utils.closeModal()">&times;</button>
+                <button class="modal-close" data-on-click="Utils.closeModal()">&times;</button>
             </div>
             <div class="modal-body" id="wizard-body">
                 <!-- Step 1: Find Sale -->
@@ -104,7 +104,7 @@ const Returns = {
                     <p class="mb-4">Enter the receipt number or customer name to locate the original sale.</p>
                     <div class="flex gap-2 mb-4">
                         <input type="text" id="sale-search-input" class="form-input" placeholder="e.g. SALE-20231025-001 or Customer Name">
-                        <button class="btn btn-primary" onclick="Returns.searchSale()">Search</button>
+                        <button class="btn btn-primary" data-on-click="Returns.searchSale()">Search</button>
                     </div>
                     <div id="sale-results" class="space-y-2"></div>
                 </div>
@@ -127,7 +127,7 @@ const Returns = {
             }
 
             resultsContainer.innerHTML = sales.map(s => `
-                <div class="p-3 border rounded hover:bg-slate-50 cursor-pointer flex justify-between items-center" onclick="Returns.selectSale('${s.sale_id}')">
+                <div class="p-3 border rounded hover:bg-slate-50 cursor-pointer flex justify-between items-center" data-on-click="Returns.selectSale('${s.sale_id}')">
                     <div>
                         <div class="font-bold">${s.sale_number}</div>
                         <div class="text-sm text-secondary">${new Date(s.created_at).toLocaleDateString()} • ${s.customer_name || 'Walk-in'}</div>
@@ -168,12 +168,12 @@ const Returns = {
 
         container.innerHTML = `
             <div class="mb-4">
-                <button class="text-sm text-blue-600 mb-2" onclick="Returns.openWizard()">← Back to Search</button>
+                <button class="text-sm text-blue-600 mb-2" data-on-click="Returns.openWizard()">← Back to Search</button>
                 <h3 class="font-bold">Select Items to Return</h3>
                 <p class="text-sm text-secondary">Sale #${sale.sale_number}</p>
             </div>
 
-            <form id="return-items-form" onsubmit="Returns.submitReturn(event)">
+            <form id="return-items-form" data-on-submit="Returns.submitReturn($event)">
                 <input type="hidden" name="original_sale_id" value="${sale.sale_id}">
                 
                 <div class="table-container mb-6 max-h-60 overflow-y-auto">
@@ -192,7 +192,7 @@ const Returns = {
                             ${sale.items.map(item => `
                                 <tr>
                                     <td>
-                                        <input type="checkbox" class="item-select" data-id="${item.item_id}" onchange="Returns.toggleItemRow(this)">
+                                        <input type="checkbox" class="item-select" data-id="${item.item_id}" data-on-change="Returns.toggleItemRow($el)">
                                     </td>
                                     <td>
                                         ${item.product_name}
@@ -313,7 +313,7 @@ const Returns = {
                 <div class="modal-header">
                     <h2 class="modal-title">Return #${ret.return_number}</h2>
                     <span class="badge badge-${ret.status === 'Processed' ? 'success' : 'warning'} ml-3">${ret.status}</span>
-                    <button class="modal-close" onclick="Utils.closeModal()">&times;</button>
+                    <button class="modal-close" data-on-click="Utils.closeModal()">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="grid grid-cols-2 gap-4 mb-6">
@@ -364,8 +364,8 @@ const Returns = {
                     </table>
 
                     <div class="modal-footer">
-                        ${ret.status === 'Pending' ? `<button class="btn btn-primary" onclick="Returns.processReturn('${ret.return_id}')">Use Store Credit / Refund</button>` : ''}
-                        <button class="btn btn-secondary" onclick="Utils.closeModal()">Close</button>
+                        ${ret.status === 'Pending' ? `<button class="btn btn-primary" data-on-click="Returns.processReturn('${ret.return_id}')">Use Store Credit / Refund</button>` : ''}
+                        <button class="btn btn-secondary" data-on-click="Utils.closeModal()">Close</button>
                     </div>
                 </div>
             `);
@@ -397,3 +397,6 @@ const Returns = {
         }
     }
 };
+
+// Expose to global scope for delegated event handlers (data-on-* attributes).
+window.Returns = Returns;

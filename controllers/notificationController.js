@@ -52,6 +52,31 @@ const NotificationController = {
         }
     },
 
+    /**
+     * GET /api/notifications?status=all|unread|read&limit=N
+     * Returns the full notification list for the current user, capped at
+     * `limit` (default 100, max 500) ordered newest first. Used by the
+     * dedicated Notifications page.
+     */
+    async getAll(req, res) {
+        try {
+            const userId = req.user.user_id;
+            const status = String(req.query.status || 'all').toLowerCase();
+            const limit  = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 500);
+
+            let sql = 'SELECT * FROM notifications WHERE user_id = $1';
+            if (status === 'unread')      sql += ' AND is_read = FALSE';
+            else if (status === 'read')   sql += ' AND is_read = TRUE';
+            sql += ' ORDER BY created_at DESC LIMIT $2';
+
+            const result = await pool.query(sql, [userId, limit]);
+            res.json(result.rows);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Server error' });
+        }
+    },
+
     async markRead(req, res) {
         const { id } = req.params;
         const userId = req.user.user_id;

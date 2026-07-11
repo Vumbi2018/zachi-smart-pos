@@ -57,10 +57,18 @@ async function createCustomer(req, res) {
         const { full_name, phone, email, company_name, t_pin, customer_type, notes } = req.body;
         if (!full_name) return res.status(400).json({ error: 'Full name is required.' });
 
+        // Stamp device_id / client_op_id for sync provenance.
+        const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const rawDev = req.headers['x-device-id'];
+        const rawOp = req.headers['x-client-op-id'];
+        const deviceId = rawDev && UUID_RE.test(String(rawDev)) ? String(rawDev).toLowerCase() : null;
+        const clientOpId = rawOp && UUID_RE.test(String(rawOp)) ? String(rawOp).toLowerCase() : null;
+
         const result = await pool.query(
-            `INSERT INTO customers (full_name, phone, email, company_name, t_pin, customer_type, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-            [full_name, phone || null, email || null, company_name || null, t_pin || null, customer_type || 'walk-in', notes || null]
+            `INSERT INTO customers (full_name, phone, email, company_name, t_pin, customer_type, notes, device_id, client_op_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+            [full_name, phone || null, email || null, company_name || null, t_pin || null,
+             customer_type || 'walk-in', notes || null, deviceId, clientOpId]
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {
@@ -74,14 +82,24 @@ async function createCustomer(req, res) {
 async function updateCustomer(req, res) {
     try {
         const { full_name, phone, email, company_name, t_pin, customer_type, notes } = req.body;
+        // Stamp device_id / client_op_id for sync provenance — same as
+        // createCustomer does so reconciliation can match this update
+        // back to the queued offline op.
+        const rawDev = req.headers['x-device-id'];
+        const rawOp = req.headers['x-client-op-id'];
+        const device_id = (req.body && req.body.device_id) || rawDev || null;
+        const client_op_id = (req.body && req.body.client_op_id) || rawOp || null;
         const result = await pool.query(
             `UPDATE customers SET
         full_name = COALESCE($1, full_name), phone = COALESCE($2, phone),
         email = COALESCE($3, email), company_name = COALESCE($4, company_name),
         t_pin = COALESCE($5, t_pin), customer_type = COALESCE($6, customer_type),
-        notes = COALESCE($7, notes), updated_at = CURRENT_TIMESTAMP
+        notes = COALESCE($7, notes),
+        device_id = COALESCE($9, device_id),
+        client_op_id = COALESCE($10, client_op_id),
+        updated_at = CURRENT_TIMESTAMP
        WHERE customer_id = $8 RETURNING *`,
-            [full_name, phone, email, company_name, t_pin, customer_type, notes, req.params.id]
+            [full_name, phone, email, company_name, t_pin, customer_type, notes, req.params.id, device_id, client_op_id]
         );
         if (result.rows.length === 0) return res.status(404).json({ error: 'Customer not found.' });
         res.json(result.rows[0]);

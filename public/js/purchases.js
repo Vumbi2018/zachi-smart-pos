@@ -6,7 +6,7 @@ const Purchases = {
                     <h1 class="page-title">Purchase Orders</h1>
                     <p class="text-secondary">Manage procurement, orders, and goods received.</p>
                 </div>
-                <button class="btn btn-primary" onclick="Purchases.openCreateModal()">
+                <button class="btn btn-primary" data-on-click="Purchases.openCreateModal()">
                     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 5v14M5 12h14"/>
                     </svg>
@@ -15,11 +15,11 @@ const Purchases = {
             </div>
 
             <div class="tabs mb-6">
-                <button class="tab active" onclick="Purchases.filterStatus('All')">All</button>
-                <button class="tab" onclick="Purchases.filterStatus('Draft')">Draft</button>
-                <button class="tab" onclick="Purchases.filterStatus('Ordered')">Ordered</button>
-                <button class="tab" onclick="Purchases.filterStatus('Partial')">Partial</button>
-                <button class="tab" onclick="Purchases.filterStatus('Received')">Received</button>
+                <button class="tab active" data-on-click="Purchases.filterStatus('All')">All</button>
+                <button class="tab" data-on-click="Purchases.filterStatus('Draft')">Draft</button>
+                <button class="tab" data-on-click="Purchases.filterStatus('Ordered')">Ordered</button>
+                <button class="tab" data-on-click="Purchases.filterStatus('Partial')">Partial</button>
+                <button class="tab" data-on-click="Purchases.filterStatus('Received')">Received</button>
             </div>
 
             <div class="card">
@@ -70,14 +70,14 @@ const Purchases = {
         }
 
         tbody.innerHTML = pos.map(po => `
-            <tr class="hover:bg-slate-50 cursor-pointer" onclick="Purchases.openDetail('${po.po_id}')">
+            <tr class="hover:bg-slate-50 cursor-pointer" data-on-click="Purchases.openDetail('${po.po_id}')">
                 <td class="font-medium">${po.po_number}</td>
                 <td>${po.supplier_name}</td>
                 <td>${new Date(po.created_at).toLocaleDateString()}</td>
                 <td><span class="badge badge-${this.getStatusColor(po.status)}">${po.status}</span></td>
                 <td>${Utils.formatCurrency(po.total_amount)}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); Purchases.openDetail('${po.po_id}')">View</button>
+                    <button class="btn btn-sm btn-outline" data-on-click="Purchases.openDetail('${po.po_id}')">View</button>
                 </td>
             </tr>
         `).join('');
@@ -106,10 +106,10 @@ const Purchases = {
         Utils.showModal(`
             <div class="modal-header">
                 <h2 class="modal-title">New Purchase Order</h2>
-                <button class="modal-close" onclick="Utils.closeModal()">&times;</button>
+                <button class="modal-close" data-on-click="Utils.closeModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="create-po-form" onsubmit="Purchases.submitCreate(event)">
+                <form id="create-po-form" data-on-submit="Purchases.submitCreate($event)">
                     <div class="form-group">
                         <label>Supplier</label>
                         <select name="supplier_id" class="form-input" required>
@@ -131,7 +131,7 @@ const Purchases = {
                     <div id="po-items-container" class="space-y-2 mb-4">
                         <!-- Items added dynamically -->
                     </div>
-                    <button type="button" class="btn btn-sm btn-outline w-full" onclick="Purchases.addItemRow()">+ Add Item</button>
+                    <button type="button" class="btn btn-sm btn-outline w-full" data-on-click="Purchases.addItemRow()">+ Add Item</button>
 
                     <div class="modal-footer mt-6">
                         <button type="submit" class="btn btn-primary">Create Draft PO</button>
@@ -152,7 +152,7 @@ const Purchases = {
         row.innerHTML = `
             <div class="col-span-5">
                 <label class="text-xs">Product Barcode/Name</label>
-                <input type="text" name="item_product_${id}" class="form-input" placeholder="Scan or Search" required onchange="Purchases.lookupProduct(this, ${id})">
+                <input type="text" name="item_product_${id}" class="form-input" placeholder="Scan or Search" required data-on-change="Purchases.lookupProduct($el, ${id})">
                 <input type="hidden" name="productId_${id}">
             </div>
             <div class="col-span-2">
@@ -164,7 +164,7 @@ const Purchases = {
                 <input type="number" name="item_cost_${id}" class="form-input" step="0.01" required>
             </div>
             <div class="col-span-2">
-                <button type="button" class="btn btn-icon text-red-500" onclick="this.parentElement.parentElement.remove()">🗑️</button>
+                <button type="button" class="btn btn-icon text-red-500" data-on-click="Dom.removeClosest('.grid', $el)">🗑️</button>
             </div>
         `;
         container.appendChild(row);
@@ -242,7 +242,7 @@ const Purchases = {
                 <div class="modal-header">
                     <h2 class="modal-title">PO #${po.po_number}</h2>
                     <span class="badge badge-${this.getStatusColor(po.status)} ml-3">${po.status}</span>
-                    <button class="modal-close" onclick="Utils.closeModal()">&times;</button>
+                    <button class="modal-close" data-on-click="Utils.closeModal()">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="grid grid-cols-2 gap-4 mb-6">
@@ -301,9 +301,9 @@ const Purchases = {
                     ` : ''}
 
                     <div class="modal-footer">
-                        ${po.status === 'Draft' ? `<button class="btn btn-danger mr-auto" onclick="Purchases.deletePO('${po.po_id}')">Delete Draft</button>` : ''}
-                        ${po.status !== 'Received' && po.status !== 'Draft' ? `<button class="btn btn-primary" onclick="Purchases.openReceiveModal('${po.po_id}')">Receive Goods</button>` : ''}
-                        <button class="btn btn-secondary" onclick="Utils.closeModal()">Close</button>
+                        ${po.status === 'Draft' ? `<button class="btn btn-danger mr-auto" data-on-click="Purchases.deletePO('${po.po_id}')">Delete Draft</button>` : ''}
+                        ${po.status !== 'Received' && po.status !== 'Draft' ? `<button class="btn btn-primary" data-on-click="Purchases.openReceiveModal('${po.po_id}')">Receive Goods</button>` : ''}
+                        <button class="btn btn-secondary" data-on-click="Utils.closeModal()">Close</button>
                     </div>
                 </div>
             `);
@@ -330,10 +330,10 @@ const Purchases = {
             Utils.showModal(`
                 <div class="modal-header">
                     <h2 class="modal-title">Receive Goods (GRN)</h2>
-                    <button class="modal-close" onclick="Utils.closeModal()">&times;</button>
+                    <button class="modal-close" data-on-click="Utils.closeModal()">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <form id="grn-form" onsubmit="Purchases.submitGRN(event, '${id}')">
+                    <form id="grn-form" data-on-submit="Purchases.submitGRN($event, '${id}')">
                         <p class="mb-4">Receive items for PO #${po.po_number}</p>
                         
                         <div class="form-group">
@@ -417,3 +417,6 @@ const Purchases = {
         }
     }
 };
+
+// Expose to global scope for delegated event handlers (data-on-* attributes).
+window.Purchases = Purchases;

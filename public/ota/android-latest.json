@@ -1,0 +1,8 @@
+{
+  "version": "1.0.51",
+  "url": "https://pos.zachicomputercentre.com/ota/web-bundle-1.0.51-276b40ea9439.zip",
+  "checksum": "3aacba581ea925f25e854edf8cfc13cea0b5c14c35653628960bca757e03ecd3",
+  "size_bytes": 1896623,
+  "released_at": "2026-07-11T06:23:36.540Z",
+  "_note": "Unsigned bundle. Capgo plugin will reject this when publicKey is set in capacitor.config.json. Set CAPGO_PRIVATE_KEY secret to enable signing."
+}

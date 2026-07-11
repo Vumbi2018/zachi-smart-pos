@@ -23,5 +23,11 @@ router.get('/customer-insights', auth, authorize('director'), ctrl.customerInsig
 router.get('/category-margin', auth, authorize('director'), ctrl.categoryMargin);
 router.get('/hourly-trend', auth, authorize('director'), ctrl.hourlyTrend);
 router.get('/aggregated', auth, authorize('director'), ctrl.getAggregatedSales);
+router.get('/profit-margin', auth, authorize('director'), ctrl.getProfitMarginReport);
+router.get('/dashboard-charts', auth, authorize('director', 'manager'), ctrl.dashboardCharts);
+router.get('/line-removals', auth, authorize('director'), ctrl.lineRemovals);
+router.get('/line-removal-alerts', auth, authorize('director'), ctrl.lineRemovalAlerts);
+
+router.get('/pdf', auth, authorize('director', 'manager'), ctrl.getPdfReport);
 
 module.exports = router;

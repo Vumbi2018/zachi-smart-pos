@@ -50,7 +50,9 @@ async function createService(req, res) {
  */
 async function updateService(req, res) {
     try {
-        const { service_name, category, base_price, unit_measure, is_active, description } = req.body;
+        const { service_name, category, base_price, unit_measure, description } = req.body;
+        // Coerce is_active to a real boolean (FormData sends "true"/"false" strings)
+        const is_active = req.body.is_active === true || req.body.is_active === 'true';
         const result = await pool.query(
             `UPDATE services SET
         service_name = COALESCE($1, service_name),
@@ -65,7 +67,8 @@ async function updateService(req, res) {
         if (result.rows.length === 0) return res.status(404).json({ error: 'Service not found.' });
         res.json(result.rows[0]);
     } catch (err) {
-        res.status(500).json({ error: 'Server error.' });
+        console.error('[updateService] DB ERROR:', err.message, '\nStack:', err.stack);
+        res.status(500).json({ error: err.message || 'Server error.' });
     }
 }
 

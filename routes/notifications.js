@@ -7,6 +7,7 @@ const authenticateToken = require('../middleware/auth'); // Assuming this exists
 router.use(authenticateToken);
 
 router.get('/unread', NotificationController.getUnread);
+router.get('/', NotificationController.getAll);
 router.put('/:id/read', NotificationController.markRead);
 router.put('/read-all', NotificationController.markAllRead);
 

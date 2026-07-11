@@ -1213,6 +1213,13 @@ tbody tr:last-child td {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* Stick to the top of the right column and only grow as tall as the
+     items the cashier has actually added — instead of stretching to
+     match the (much taller) products grid on the left. The cart-items
+     section caps itself at 55vh and scrolls internally so the
+     checkout button is always reachable without page scrolling. */
+  align-self: start;
+  max-height: 100%;
 }
 
 .cart-header {
@@ -1242,7 +1249,14 @@ tbody tr:last-child td {
 }
 
 .cart-items {
-  flex: 1;
+  /* Grow with the items added (no longer `flex: 1` which forced the
+     cart to fill the entire viewport height). Caps at 55vh and scrolls
+     internally if the cashier piles in many items, so the totals + the
+     Checkout button below stay visible without ever requiring a page
+     scroll. min-height keeps the empty-cart placeholder readable. */
+  flex: 0 1 auto;
+  min-height: 100px;
+  max-height: 55vh;
   overflow-y: auto;
   padding: 0.5rem;
 }
@@ -4184,4 +4198,1054 @@ textarea.form-input {
 .tab:not(.active) .tab-badge, .tab-item:not(.active) .tab-badge {
     background: #e2e8f0 !important;
     color: #475569 !important;
+}
+
+/* -- Inventory: Inline Edit, Sortable Headers, Resizable Columns -- */
+.inv-editable {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.inv-editable:hover {
+  background: rgba(27, 58, 92, 0.05) !important;
+  outline: 1px dashed rgba(27, 58, 92, 0.25);
+  outline-offset: -1px;
+}
+#inv-thead-row th[data-key]:hover {
+  background: rgba(27, 58, 92, 0.06);
+}
+.sort-arrow {
+  font-size: 0.65rem;
+  vertical-align: middle;
+  margin-left: 2px;
+}
+
+
+/* ============================================================
+   Task #7: rules previously injected as inline <style> blocks.
+   Moved here so that style-src no longer needs 'unsafe-inline'.
+   ============================================================ */
+
+/* --- pos.js: enhanced POS UI animations & glassmorphism cart --- */
+@keyframes slideInRight { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+@keyframes flash { 0% { background-color: rgba(34, 197, 94, 0.2); } 100% { background-color: transparent; } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+.cart-item-anim { animation: slideInRight 0.3s ease-out; }
+.cart-update-anim { animation: flash 0.5s ease-out; }
+/* The .pos-item-card:active rule is defined once near line 1162. */
+
+.pos-cart {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-left: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: -4px 0 15px rgba(0, 0, 0, 0.05);
+}
+
+.cart-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #94a3b8;
+    text-align: center;
+    animation: pulse 3s infinite ease-in-out;
+}
+.cart-empty-icon { font-size: 4rem; margin-bottom: 1rem; opacity: 0.5; }
+
+.shortcut-hint {
+    font-size: 0.7rem;
+    background: #e2e8f0;
+    padding: 2px 5px;
+    border-radius: 4px;
+    margin-left: 5px;
+    color: #64748b;
+    vertical-align: middle;
+}
+
+.payment-method-btn { transition: all 0.2s; }
+.payment-method-btn:active { transform: scale(0.95); }
+
+.calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+.calc-btn {
+    padding: 15px;
+    font-size: 1.2rem;
+    border: none;
+    border-radius: 8px;
+    background: #f1f5f9;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.calc-btn:hover { background: #e2e8f0; }
+.calc-btn:active { background: #cbd5e1; }
+.calc-btn.operator { background: #e0f2fe; color: #0284c7; }
+.calc-btn.equal { background: #22c55e; color: white; grid-column: span 1; }
+.calc-btn.clear { background: #ef4444; color: white; }
+.calc-display {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.5rem;
+    text-align: right;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background: #fff;
+}
+
+.shortcuts-table { width: 100%; border-collapse: collapse; }
+.shortcuts-table td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
+.shortcuts-table kbd {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.8rem;
+    font-family: monospace;
+}
+
+/* --- services.js: editable cells & sticky header drop shadow --- */
+.data-table thead th {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+}
+td.svc-editable {
+    cursor: text;
+    position: relative;
+    transition: background 0.15s;
+}
+td.svc-editable:hover {
+    background: rgba(27, 58, 92, 0.06) !important;
+    outline: 1.5px dashed var(--color-primary, #1B3A5C);
+    outline-offset: -2px;
+}
+td.svc-editable input,
+td.svc-editable select {
+    width: 100%;
+    min-width: 60px;
+    padding: 2px 4px;
+    border: 1.5px solid var(--color-primary, #1B3A5C);
+    border-radius: 4px;
+    font-size: inherit;
+    font-family: inherit;
+    box-sizing: border-box;
+    background: #fff;
+}
+
+/* --- stock_receiving.js: full-screen loader spinner --- */
+@keyframes sr-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+#sr-loader-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    animation: sr-spin 1s linear infinite;
+}
+
+/* ── User-edit modal sub-tabs (v1.0.16) ────────────────────────────
+   Used by users.js to switch the modal between Profile and Access
+   panels. Mirrors the .pos-tabs underline style but lighter weight
+   so it sits comfortably inside a modal. */
+/* v1.0.22 — defensive tab row. The previous version relied on
+   Tailwind utilities (`flex gap-1 border-b border-white/10 mb-4 -mt-2`)
+   on the parent <div>. On installs where those utilities were absent
+   or overridden, the second tab button collapsed onto a new line and
+   was visually cut off — the user reported "only one tab visible at
+   a time". Pinning the row to flex with !important makes the layout
+   immune to that drift. */
+.user-modal-tabs {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch;
+    justify-content: flex-start !important;
+    gap: 0.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin: -0.5rem 0 1rem 0;
+}
+/* v1.0.24 — bump specificity to .user-modal-tabs > .user-modal-tab so
+   the row-pinning rules win over a stale .hidden being applied to a
+   tab button (the v1.0.22 fix used a flat .user-modal-tab selector
+   that tied with .hidden on equal !important specificity, so source
+   order let .hidden collapse the inactive tab on some renders). */
+.user-modal-tabs > .user-modal-tab,
+.user-modal-tab {
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    /* v1.0.32 — was rgba(255,255,255,0.55); the modal renders on a
+       light background, so white-on-white made the inactive tab
+       invisible (user reported "only the active tab shows").
+       Use a neutral grey that's legible on both light and dark. */
+    color: #64748b;
+    padding: 0.55rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    display: inline-flex !important;   /* never let a sibling rule hide a tab */
+    visibility: visible !important;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+.user-modal-tab:hover {
+    color: #1e293b;
+    background: rgba(15, 23, 42, 0.04);
+}
+
+/* v1.0.22 — pill that shows the chosen proof file's name + size.
+   Class-toggled (.proof-file-pill-error) instead of inline
+   style.color mutation, to stay CSP-strict. */
+.proof-file-pill-error {
+    color: var(--color-danger, #ef4444) !important;
+}
+.user-modal-tab.active {
+    color: var(--color-primary, #3b82f6);
+    border-bottom-color: var(--color-primary, #3b82f6);
+}
+
+/* ── User row override pill (v1.0.17) ──────────────────────────────
+   Tiny coloured chip rendered next to each user's role in the Users
+   table. Tells the operator at a glance whether the user runs on
+   the role default permission set or has explicit overrides. The
+   <button> wrapper makes the whole pill clickable -- click jumps
+   straight to the modal's Access tab. */
+.user-perm-pill-btn {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    line-height: 1;
+}
+.user-perm-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border: 1px solid transparent;
+    transition: filter 0.15s;
+}
+.user-perm-pill-btn:hover .user-perm-pill {
+    filter: brightness(1.2);
+}
+.user-perm-pill.is-default {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.55);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+.user-perm-pill.is-override {
+    background: rgba(245, 158, 11, 0.12);
+    color: rgb(252, 211, 77);
+    border-color: rgba(245, 158, 11, 0.35);
+}
+.user-perm-pill.is-director {
+    background: rgba(168, 85, 247, 0.15);
+    color: rgb(216, 180, 254);
+    border-color: rgba(168, 85, 247, 0.4);
+}
+
+/* ── Permission grid row state badges (v1.0.17) ────────────────────
+   Inside the Access tab's permission editor each .perm-item gets a
+   left border tint + a tiny badge so the operator can see whether
+   a granted/revoked checkbox matches the role default or is an
+   explicit per-user override. Badge text is set by users.js. */
+.perm-item {
+    border-left: 3px solid transparent;
+    transition: background 0.12s, border-color 0.12s;
+}
+.perm-item.perm-state-default { border-left-color: rgba(255, 255, 255, 0.12); }
+.perm-item.perm-state-override-grant {
+    border-left-color: rgba(34, 197, 94, 0.7);
+    background: rgba(34, 197, 94, 0.04);
+}
+.perm-item.perm-state-override-revoke {
+    border-left-color: rgba(245, 158, 11, 0.75);
+    background: rgba(245, 158, 11, 0.05);
+}
+.perm-item.perm-state-denied {
+    opacity: 0.78;
+}
+.perm-state-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border: 1px solid transparent;
+    line-height: 1.2;
+}
+.perm-state-badge.state-default {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.45);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+.perm-state-badge.state-grant {
+    background: rgba(34, 197, 94, 0.15);
+    color: rgb(134, 239, 172);
+    border-color: rgba(34, 197, 94, 0.4);
+}
+.perm-state-badge.state-revoke {
+    background: rgba(245, 158, 11, 0.15);
+    color: rgb(252, 211, 77);
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
+/* ── "Show overrides only" filter (task #49) ─────────────────────
+   When the toggle in the Access tab header is on, the grid gets
+   the .perm-only-overrides class. Hide every row whose state is
+   either "default" (granted by the role) or "denied" (not in role
+   and not granted), leaving only explicit + / − overrides for a
+   fast audit view. Empty module accordions collapse via :has(). */
+#user-perms-grid.perm-only-overrides .perm-item.perm-state-default,
+#user-perms-grid.perm-only-overrides .perm-item.perm-state-denied {
+    display: none;
+}
+#user-perms-grid.perm-only-overrides details:not(:has(.perm-item.perm-state-override-grant, .perm-item.perm-state-override-revoke)) {
+    display: none;
+}
+
+/* ==========================================================================
+   Stock Receiving — refreshed layout (v1.0.20). Custom .sr-* namespace so
+   the page can be styled coherently without picking up the legacy
+   .page-header / Bootstrap-ish classes that the rest of the app no longer
+   uses. Mirrors the visual language of the Quotes / Invoices pages
+   (rounded cards, soft shadow, primary-tinted hero header).
+   ========================================================================== */
+.sr-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 24px;
+    margin: 0 0 16px 0;
+    border-radius: 14px;
+    color: #fff;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #2563eb 100%);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.18);
+}
+.sr-hero-text { flex: 1 1 auto; min-width: 0; }
+.sr-hero-title { margin: 0 0 4px 0; font-size: 22px; font-weight: 700; line-height: 1.2; }
+.sr-hero-subtitle { margin: 0; font-size: 13px; opacity: 0.9; }
+.sr-hero-cta .btn-lg { padding: 10px 18px; font-weight: 600; }
+
+.sr-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 16px 0;
+}
+
+.sr-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+.sr-header-card { padding: 18px 20px; }
+
+.sr-header-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 2fr;
+    gap: 14px 16px;
+}
+.sr-field { display: flex; flex-direction: column; min-width: 0; }
+.sr-field--full { grid-column: 1 / -1; }
+.sr-label { font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.03em; }
+.sr-req   { color: #dc2626; }
+.sr-input-group { display: flex; gap: 6px; }
+.sr-input-group > select.form-input { flex: 1 1 auto; min-width: 0; }
+.sr-search-wrap { position: relative; }
+.sr-search-wrap .autocomplete-suggestions {
+    position: absolute; top: 100%; left: 0; right: 0;
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    margin-top: 4px; max-height: 280px; overflow-y: auto; z-index: 50;
+}
+.sr-search-wrap .suggestion-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f3f4f6; }
+.sr-search-wrap .suggestion-item:hover { background: #eef2ff; }
+.sr-search-wrap .suggestion-item:last-child { border-bottom: 0; }
+
+.sr-table-card { padding: 0; }
+.sr-table-scroll { overflow-x: auto; }
+.sr-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.sr-table thead th { background: #f9fafb; text-align: left; padding: 10px 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em; border-bottom: 1px solid #e5e7eb; }
+.sr-table tbody td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+.sr-table tbody tr:hover { background: #fafbff; }
+.sr-table tbody tr:last-child td { border-bottom: 0; }
+.sr-empty-row td { text-align: center; color: #9ca3af; padding: 40px 16px !important; font-style: italic; }
+
+.sr-totals-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 18px; background: #f9fafb; border-top: 1px solid #e5e7eb;
+}
+.sr-totals-pill { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #eef2ff; color: #4338ca; font-size: 12px; font-weight: 600; }
+.sr-totals-right { display: flex; align-items: baseline; gap: 10px; }
+.sr-totals-label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }
+.sr-totals-amount { font-size: 20px; font-weight: 700; color: #111827; }
+
+@media (max-width: 768px) {
+    .sr-hero { flex-direction: column; align-items: stretch; text-align: left; }
+    .sr-header-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Notification bell badge (v1.0.23) ────────────────────────────
+ *  The bell lives in the top header. When there are unread items
+ *  we want two affordances: (1) a coloured count pill on the bell
+ *  and (2) the bell icon itself shifts to a warning amber so the
+ *  change is obvious without staring at the corner.
+ *
+ *  CSP-strict: no inline styles, classes only. The badge text is
+ *  set by App.checkNotifications and capped at "9+".
+ */
+.notification-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #dc2626;       /* red-600 */
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    border: 2px solid var(--header-bg, #0f172a);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.15);
+    pointer-events: none;
+    box-sizing: content-box;
+}
+.notification-badge.hidden { display: none; }
+#notification-bell.has-unread {
+    color: #fbbf24 !important; /* amber-400 — overrides the muted white */
+    animation: notif-bell-pulse 1.6s ease-in-out 0s 2;
+}
+@keyframes notif-bell-pulse {
+    0%, 100% { transform: rotate(0); }
+    20%      { transform: rotate(-12deg); }
+    40%      { transform: rotate(10deg); }
+    60%      { transform: rotate(-6deg); }
+    80%      { transform: rotate(4deg); }
+}
+
+/* =====================================================================
+   v1.0.37 — User & Access Management: clean professional redesign.
+   Light theme, solid surfaces, sharp typography, real contrast.
+   Same "um-" namespace so users.js DOM is untouched.
+   CSP-strict: zero inline styles or handlers.
+   ===================================================================== */
+.um-page {
+  padding: 1.5rem 1.75rem 3rem;
+  max-width: 1320px;
+  margin: 0 auto;
+  background: transparent;
+  color: #0f172a;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* --- Header ---------------------------------------------------------- */
+.um-hero {
+  display: flex; align-items: center; gap: 1rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+}
+.um-hero-row { display: contents; }
+.um-hero-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: linear-gradient(135deg,#2E6B8A,#2E6B8A);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px -4px rgba(46,107,138,0.5);
+  flex-shrink: 0;
+}
+.um-hero-icon .material-icons-outlined { color: #fff; font-size: 24px; }
+.um-hero-title { font-size: 1.15rem; font-weight: 700; color: #0f172a; letter-spacing: -0.01em; }
+.um-hero-sub   { font-size: 0.82rem; color: #64748b; margin-top: 1px; }
+.um-hero-actions { margin-left: auto; display: flex; gap: 0.55rem; align-items: center; }
+
+.um-search {
+  display: flex; align-items: center; gap: 0.45rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  width: 280px; max-width: 100%;
+  transition: border-color 0.15s, background 0.15s;
+}
+.um-search:focus-within { border-color: #2E6B8A; background: #fff; box-shadow: 0 0 0 3px rgba(46,107,138,0.15); }
+.um-search .material-icons-outlined { color: #94a3b8; font-size: 18px; }
+.um-search input {
+  background: transparent; border: 0; outline: 0; color: #0f172a;
+  font-size: 0.88rem; flex: 1; min-width: 0;
+}
+.um-search input::placeholder { color: #94a3b8; }
+
+.um-btn-primary {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  background: linear-gradient(135deg,#1B3A5C,#0F2440); color: #fff;
+  border: 0; border-radius: 10px; padding: 0.55rem 1rem;
+  font-size: 0.86rem; font-weight: 600; cursor: pointer;
+  box-shadow: 0 4px 12px -4px rgba(27,58,92,0.45);
+  transition: transform 0.1s, box-shadow 0.15s;
+}
+.um-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px -4px rgba(27,58,92,0.55); }
+.um-btn-primary .material-icons-outlined { font-size: 18px; }
+
+/* --- Stats KPIs ----------------------------------------------------- */
+.um-stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.85rem; margin-bottom: 1.25rem;
+}
+.um-stat {
+  position: relative;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  transition: border-color 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+.um-stat:hover { border-color: #cbd5e1; transform: translateY(-1px); box-shadow: 0 4px 12px -4px rgba(15,23,42,0.08); }
+.um-stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; font-weight: 600; }
+.um-stat-value { font-size: 1.85rem; font-weight: 700; color: #0f172a; line-height: 1.1; margin-top: 0.35rem; letter-spacing: -0.02em; }
+.um-stat-hint  { font-size: 0.75rem; color: #94a3b8; margin-top: 0.35rem; }
+.um-stat-icon  {
+  position: absolute; top: 0.9rem; right: 1rem;
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: #f1f5f9;
+}
+.um-stat-icon .material-icons-outlined { font-size: 18px; color: #64748b; }
+.um-stat.um-stat-director .um-stat-icon { background: #fef3c7; }
+.um-stat.um-stat-director .um-stat-icon .material-icons-outlined { color: #d97706; }
+.um-stat.um-stat-active   .um-stat-icon { background: #dcfce7; }
+.um-stat.um-stat-active   .um-stat-icon .material-icons-outlined { color: #16a34a; }
+.um-stat.um-stat-inactive .um-stat-icon { background: #fee2e2; }
+.um-stat.um-stat-inactive .um-stat-icon .material-icons-outlined { color: #dc2626; }
+
+/* --- Filter chips --------------------------------------------------- */
+.um-filter-bar {
+  display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+}
+.um-filter-label {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: #94a3b8; font-weight: 600; margin-right: 0.5rem;
+}
+.um-chip {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem; font-weight: 500; cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.um-chip:hover { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
+.um-chip.active {
+  background: #1B3A5C; color: #fff; border-color: #1B3A5C;
+  box-shadow: 0 2px 6px -2px rgba(27,58,92,0.4);
+}
+.um-chip-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 18px; padding: 0 0.4rem;
+  background: rgba(15,23,42,0.06); color: #64748b;
+  border-radius: 999px; font-size: 0.7rem; font-weight: 700;
+}
+.um-chip.active .um-chip-count { background: rgba(255,255,255,0.22); color: #fff; }
+
+/* --- User card grid ------------------------------------------------- */
+.um-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+.um-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.1rem 1.15rem 0.9rem;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  transition: border-color 0.15s, transform 0.1s, box-shadow 0.15s;
+  overflow: hidden;
+}
+.um-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: #cbd5e1;
+}
+.um-card.role-director  ::before, .um-card.role-director::before  { background: linear-gradient(180deg,#f59e0b,#d97706); }
+.um-card.role-manager   ::before, .um-card.role-manager::before   { background: linear-gradient(180deg,#2E6B8A,#1B3A5C); }
+.um-card.role-cashier   ::before, .um-card.role-cashier::before   { background: linear-gradient(180deg,#10b981,#059669); }
+.um-card.role-designer  ::before, .um-card.role-designer::before  { background: linear-gradient(180deg,#ec4899,#db2777); }
+.um-card.role-consultant::before { background: linear-gradient(180deg,#06b6d4,#0891b2); }
+.um-card:hover { border-color: #cbd5e1; transform: translateY(-2px); box-shadow: 0 10px 30px -10px rgba(15,23,42,0.12); }
+
+.um-card-status {
+  position: absolute; top: 0.85rem; right: 0.95rem;
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 0.25rem 0.55rem; border-radius: 999px;
+}
+.um-card-status.is-active   { background: #dcfce7; color: #15803d; }
+.um-card-status.is-inactive { background: #fee2e2; color: #b91c1c; }
+.um-status-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.5);
+}
+.um-card-status.is-active .um-status-dot { animation: um-pulse 2s infinite; }
+@keyframes um-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(22,163,74,0.4); }
+  50%      { box-shadow: 0 0 0 6px rgba(22,163,74,0); }
+}
+
+.um-card-head { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 0.95rem; padding-right: 5rem; }
+.um-avatar {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 1.05rem; color: #fff; letter-spacing: -0.02em;
+  background: linear-gradient(135deg,#2E6B8A,#2E6B8A);
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px -1px rgba(46,107,138,0.4);
+}
+.um-card.role-director  .um-avatar { background: linear-gradient(135deg,#fbbf24,#d97706); box-shadow: 0 2px 6px -1px rgba(217,119,6,0.4); }
+.um-card.role-manager   .um-avatar { background: linear-gradient(135deg,#3F7EA3,#1B3A5C); }
+.um-card.role-cashier   .um-avatar { background: linear-gradient(135deg,#34d399,#059669); box-shadow: 0 2px 6px -1px rgba(5,150,105,0.4); }
+.um-card.role-designer  .um-avatar { background: linear-gradient(135deg,#f472b6,#db2777); box-shadow: 0 2px 6px -1px rgba(219,39,119,0.4); }
+.um-card.role-consultant .um-avatar { background: linear-gradient(135deg,#22d3ee,#0891b2); box-shadow: 0 2px 6px -1px rgba(8,145,178,0.4); }
+.um-card-id { min-width: 0; flex: 1; }
+.um-card-name { font-size: 0.98rem; font-weight: 700; color: #0f172a; letter-spacing: -0.01em; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.um-card-handle { font-size: 0.78rem; color: #64748b; margin-top: 2px; }
+
+.um-card-meta { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.95rem; }
+.um-card-meta-row {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.82rem; color: #475569; min-width: 0;
+}
+.um-card-meta-row .material-icons-outlined { font-size: 16px; color: #94a3b8; flex-shrink: 0; }
+.um-card-meta-row > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.um-role-badge {
+  display: inline-flex; align-items: center;
+  padding: 0.2rem 0.6rem; border-radius: 6px;
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  background: #f1f5f9; color: #475569;
+}
+.um-card.role-director  .um-role-badge { background: #fef3c7; color: #b45309; }
+.um-card.role-manager   .um-role-badge { background: #dbe7f1; color: #0F2440; }
+.um-card.role-cashier   .um-role-badge { background: #dcfce7; color: #15803d; }
+.um-card.role-designer  .um-role-badge { background: #fce7f3; color: #be185d; }
+.um-card.role-consultant .um-role-badge { background: #cffafe; color: #0e7490; }
+
+.um-card-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.5rem; padding-top: 0.85rem; border-top: 1px solid #f1f5f9;
+}
+.um-perm-pill-btn { background: transparent; border: 0; padding: 0; cursor: pointer; }
+.um-perm-pill {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: 0.74rem; font-weight: 600; padding: 0.3rem 0.6rem;
+  border-radius: 999px; background: #f1f5f9; color: #475569;
+  transition: background 0.15s, color 0.15s;
+}
+.um-perm-pill .material-icons-outlined { font-size: 14px; }
+.um-perm-pill.is-director { background: #fef3c7; color: #b45309; }
+.um-perm-pill.is-override { background: #ede9fe; color: #6d28d9; }
+.um-perm-pill-btn:hover .um-perm-pill { filter: brightness(0.97); }
+
+.um-card-actions { display: flex; gap: 0.35rem; }
+.um-icon-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: #f8fafc; border: 1px solid #e2e8f0; color: #64748b;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.um-icon-btn:hover { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
+.um-icon-btn.is-edit:hover { background: #eaf1f8; color: #1B3A5C; border-color: #b9d4e6; }
+.um-icon-btn.is-key:hover  { background: #fef3c7; color: #b45309; border-color: #fde68a; }
+.um-icon-btn .material-icons-outlined { font-size: 17px; }
+
+/* --- Empty state ---------------------------------------------------- */
+.um-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0.5rem; padding: 3rem 1rem;
+  background: #fff; border: 1px dashed #cbd5e1; border-radius: 14px;
+  color: #94a3b8;
+}
+.um-empty .material-icons-outlined { font-size: 36px; color: #cbd5e1; }
+
+/* --- Modal (light, premium) ----------------------------------------- */
+.um-modal .modal-content {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 25px 80px -20px rgba(15,23,42,0.35);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+.um-modal .modal-header {
+  background: linear-gradient(135deg,#1B3A5C,#0F2440);
+  color: #fff;
+  padding: 1.1rem 1.4rem;
+}
+.um-modal .modal-header h2 { color: #fff; font-weight: 700; }
+.um-modal .modal-header .close-btn { color: rgba(255,255,255,0.85); }
+.um-modal .modal-header .close-btn:hover { color: #fff; }
+.um-modal .premium-tabs {
+  display: inline-flex; padding: 4px; gap: 4px;
+  background: #f1f5f9; border-radius: 10px; margin: 1rem 1.4rem 0;
+}
+.um-modal .premium-tab {
+  background: transparent; border: 0; padding: 0.5rem 1rem;
+  border-radius: 7px; font-size: 0.85rem; font-weight: 600;
+  color: #64748b; cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.um-modal .premium-tab:hover { color: #0f172a; }
+.um-modal .premium-tab.active { background: #fff; color: #1B3A5C; box-shadow: 0 1px 2px rgba(15,23,42,0.06); }
+
+/* --- Header scoping: prevent any inherited dark-bg utility ---------- */
+.um-page * { box-sizing: border-box; }
+
+/* --- Login screen: version footer ----------------------------------- */
+.login-version {
+  margin-top: 1.25rem; padding-top: 1rem;
+  border-top: 1px solid rgba(15,23,42,0.08);
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  font-size: 0.75rem; color: #475569; letter-spacing: 0.02em;
+  font-weight: 600;
+}
+.login-version-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 0 0 rgba(52,211,153,0.6);
+  animation: login-ver-pulse 2.2s infinite;
+}
+@keyframes login-ver-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0.5); }
+  50%      { box-shadow: 0 0 0 5px rgba(52,211,153,0); }
+}
+
+/* ============================================================
+   v1.0.41 — User-management modal: premium Access panel
+   ============================================================ */
+
+/* Modal body padding + scrollable area */
+.um-modal .modal-body { padding: 1.25rem 1.4rem 1.4rem; max-height: 80vh; overflow-y: auto; background: #f8fafc; }
+
+/* Force light styling on form inputs inside the modal */
+.um-modal .form-input,
+.um-modal input[type="text"],
+.um-modal input[type="email"],
+.um-modal input[type="tel"],
+.um-modal input[type="password"],
+.um-modal input[type="search"],
+.um-modal select {
+  background: #fff; color: #0f172a; border: 1px solid #cbd5e1;
+  border-radius: 8px; padding: 0.55rem 0.75rem; width: 100%;
+  font-size: 0.9rem; transition: border-color .15s, box-shadow .15s;
+}
+.um-modal .form-input:focus,
+.um-modal input:focus,
+.um-modal select:focus {
+  outline: none; border-color: #2E6B8A;
+  box-shadow: 0 0 0 3px rgba(46,107,138,0.15);
+}
+.um-modal .details-label { color: #475569; font-size: 0.78rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.3rem; display: block; }
+.um-modal label[for="user-active"] { color: #0f172a; font-weight: 500; }
+.um-modal #password-hint { color: #64748b; }
+.um-modal .bg-white\/10 { background: #e2e8f0 !important; }
+.um-modal #password-group .text-white\/50 { color: #64748b !important; }
+.um-modal #user-password ~ button { color: #64748b; }
+.um-modal #user-password ~ button:hover { color: #1B3A5C; }
+
+/* Footer bar with Save / Cancel */
+.um-modal-foot {
+  display: flex; justify-content: flex-end; gap: 0.65rem;
+  margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #e2e8f0;
+}
+.um-btn-ghost {
+  background: #fff; border: 1px solid #cbd5e1; color: #334155;
+  padding: 0.55rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.85rem;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.um-btn-ghost:hover { border-color: #1B3A5C; color: #1B3A5C; background: #f8fafc; }
+.um-btn-ghost .material-icons-outlined { font-size: 17px; }
+.um-btn-save {
+  background: linear-gradient(135deg,#1B3A5C,#2E6B8A);
+  border: 0; color: #fff; padding: 0.6rem 1.2rem; border-radius: 8px;
+  font-weight: 700; font-size: 0.88rem; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  box-shadow: 0 4px 14px -4px rgba(27,58,92,0.45);
+  transition: transform .12s, box-shadow .15s;
+}
+.um-btn-save:hover { transform: translateY(-1px); box-shadow: 0 8px 22px -6px rgba(27,58,92,0.55); }
+.um-btn-save .material-icons-outlined { font-size: 18px; }
+
+/* --- Access tab: tip banner -------------------------------------- */
+.um-access-tip {
+  display: flex; gap: 0.65rem; align-items: flex-start;
+  background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a;
+  padding: 0.75rem 0.9rem; border-radius: 10px; font-size: 0.82rem;
+  line-height: 1.5; margin-bottom: 0.85rem;
+}
+.um-access-tip-icon { color: #2563eb; font-size: 20px; }
+.um-access-tip b { color: #1e3a8a; }
+
+/* --- Access tab: director-only callout --------------------------- */
+.um-access-director {
+  display: flex; gap: 0.75rem; align-items: center;
+  background: linear-gradient(135deg,#faf5ff,#f5f3ff);
+  border: 1px solid #d8b4fe; border-radius: 12px;
+  padding: 0.9rem 1.1rem; color: #581c87;
+}
+.um-access-director .material-icons-outlined { font-size: 32px; color: #7c3aed; }
+.um-access-director-title { font-weight: 700; font-size: 0.95rem; }
+.um-access-director-sub { font-size: 0.8rem; color: #6b21a8; margin-top: 0.15rem; }
+
+/* --- Access tab: summary card ------------------------------------ */
+.um-access-summary {
+  display: grid; grid-template-columns: 1fr auto; gap: 1.25rem;
+  align-items: center;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 1rem 1.15rem; margin-bottom: 0.85rem;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+}
+.um-access-summary-label {
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: #64748b;
+}
+.um-access-summary-value {
+  font-size: 1.65rem; font-weight: 800; color: #1B3A5C;
+  margin-top: 0.15rem; line-height: 1.1;
+}
+.um-access-summary-divider { color: #94a3b8; font-weight: 500; font-size: 1.1rem; margin: 0 0.3rem; }
+.um-access-summary-bar {
+  height: 6px; background: #e2e8f0; border-radius: 999px;
+  overflow: hidden; margin: 0.55rem 0 0.4rem;
+}
+.um-access-summary-bar-fill {
+  height: 100%; width: 0;
+  background: linear-gradient(90deg,#1B3A5C,#2E6B8A);
+  border-radius: 999px; transition: width .35s ease;
+}
+.um-access-summary-meta { font-size: 0.78rem; color: #475569; }
+.um-meta-muted { color: #94a3b8; }
+.um-meta-warn { color: #b45309; font-weight: 600; }
+.um-access-summary-actions {
+  display: flex; flex-direction: column; align-items: stretch;
+  gap: 0.55rem; min-width: 200px;
+}
+.um-access-toggle {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font-size: 0.8rem; color: #334155; cursor: pointer; user-select: none;
+  background: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+.um-access-toggle input { accent-color: #1B3A5C; }
+
+/* --- Access tab: search field ------------------------------------ */
+.um-access-search {
+  position: relative; margin-bottom: 0.85rem;
+}
+.um-access-search .material-icons-outlined {
+  position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);
+  color: #94a3b8; font-size: 20px; pointer-events: none;
+}
+.um-access-search input {
+  width: 100%; padding: 0.6rem 0.75rem 0.6rem 2.4rem !important;
+  background: #fff; border: 1px solid #cbd5e1; border-radius: 10px;
+  font-size: 0.88rem; color: #0f172a;
+}
+.um-access-search input:focus {
+  outline: none; border-color: #2E6B8A;
+  box-shadow: 0 0 0 3px rgba(46,107,138,0.15);
+}
+
+/* --- Module cards (accordion) ------------------------------------ */
+.um-access-grid {
+  display: flex; flex-direction: column; gap: 0.6rem;
+  max-height: 30rem; overflow-y: auto; padding-right: 0.25rem;
+}
+.um-module {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.03);
+  transition: border-color .15s, box-shadow .15s;
+}
+.um-module:hover { border-color: #cbd5e1; }
+.um-module[open] { box-shadow: 0 4px 14px -8px rgba(15,23,42,0.18); }
+.um-module-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.75rem 0.9rem; cursor: pointer; list-style: none;
+  background: linear-gradient(180deg,#f8fafc,#fff);
+  border-bottom: 1px solid transparent;
+  transition: background .15s;
+}
+.um-module-head::-webkit-details-marker { display: none; }
+.um-module[open] .um-module-head { border-bottom-color: #f1f5f9; }
+.um-module-head:hover { background: linear-gradient(180deg,#f1f5f9,#fafbfd); }
+.um-module-head-left { display: flex; align-items: center; gap: 0.7rem; }
+.um-module-icon {
+  width: 36px; height: 36px; border-radius: 9px;
+  background: linear-gradient(135deg,#1B3A5C,#2E6B8A); color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.um-module-icon .material-icons-outlined { font-size: 20px; }
+.um-module-name {
+  font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: #1B3A5C;
+}
+.um-module-count { font-size: 0.72rem; color: #64748b; margin-top: 0.1rem; }
+.um-module-actions { display: flex; align-items: center; gap: 0.35rem; }
+.um-mini-btn {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  background: #fff; border: 1px solid #e2e8f0; color: #475569;
+  font-size: 0.72rem; font-weight: 600; padding: 0.3rem 0.55rem;
+  border-radius: 6px; cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.um-mini-btn .material-icons-outlined { font-size: 14px; }
+.um-mini-btn.is-grant:hover  { border-color: #10b981; color: #047857; background: #ecfdf5; }
+.um-mini-btn.is-revoke:hover { border-color: #ef4444; color: #b91c1c; background: #fef2f2; }
+.um-module-chevron {
+  color: #94a3b8; font-size: 22px; margin-left: 0.15rem;
+  transition: transform .2s;
+}
+.um-module[open] .um-module-chevron { transform: rotate(180deg); }
+.um-module-body { padding: 0.4rem; display: flex; flex-direction: column; gap: 0.1rem; }
+
+/* --- Permission rows --------------------------------------------- */
+.um-perm-row {
+  position: relative;
+  display: grid; grid-template-columns: 20px 1fr; align-items: flex-start;
+  gap: 0.7rem; padding: 0.55rem 0.7rem; border-radius: 8px;
+  cursor: pointer; transition: background .12s;
+  border: 1px solid transparent;
+}
+.um-perm-row:hover { background: #f8fafc; border-color: #e2e8f0; }
+.um-perm-check {
+  position: absolute; left: 0.7rem; top: 0.65rem;
+  width: 18px; height: 18px; margin: 0; opacity: 0; cursor: pointer; z-index: 1;
+}
+.um-perm-box {
+  width: 18px; height: 18px; border-radius: 5px;
+  border: 1.5px solid #cbd5e1; background: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+  transition: background .12s, border-color .12s;
+}
+.um-perm-box .material-icons-outlined {
+  font-size: 14px; color: #fff; opacity: 0; transition: opacity .12s;
+}
+.um-perm-check:checked ~ .um-perm-box {
+  background: #1B3A5C; border-color: #1B3A5C;
+}
+.um-perm-check:checked ~ .um-perm-box .material-icons-outlined { opacity: 1; }
+.um-perm-check:focus-visible ~ .um-perm-box {
+  box-shadow: 0 0 0 3px rgba(46,107,138,0.25);
+}
+
+.um-perm-body { min-width: 0; }
+.um-perm-title {
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+  font-size: 0.85rem; color: #0f172a;
+}
+.um-perm-verb { font-weight: 600; color: #1e293b; }
+.um-perm-desc { font-size: 0.75rem; color: #64748b; margin-top: 0.2rem; line-height: 1.4; }
+
+/* State accents on the row left edge */
+.um-perm-row.perm-state-default          { background: #f8fafc; }
+.um-perm-row.perm-state-override-grant   { background: #ecfdf5; border-color: #a7f3d0; }
+.um-perm-row.perm-state-override-revoke  { background: #fef2f2; border-color: #fecaca; }
+.um-perm-row.perm-state-denied           { opacity: 0.78; }
+
+/* Override only-mode (re-target old rule for new grid class too) */
+.um-access-grid.perm-only-overrides .perm-item.perm-state-default,
+.um-access-grid.perm-only-overrides .perm-item.perm-state-denied { display: none; }
+.um-access-grid.perm-only-overrides details:not(:has(.perm-item.perm-state-override-grant, .perm-item.perm-state-override-revoke)) { display: none; }
+
+/* Perm badge tweaks for light bg */
+.um-perm-row .perm-state-badge {
+  font-size: 0.65rem; padding: 0.1rem 0.45rem; border-radius: 999px;
+  font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+  display: inline-flex; align-items: center;
+}
+.um-perm-row .perm-state-badge.state-default { background: #e2e8f0; color: #475569; }
+.um-perm-row .perm-state-badge.state-grant   { background: #d1fae5; color: #047857; }
+.um-perm-row .perm-state-badge.state-revoke  { background: #fee2e2; color: #b91c1c; }
+
+/* v1.0.50 — the Add/Edit User modal hosts the full permissions
+   editor. Make it wide enough that perm rows aren't squashed into
+   one-word-per-line columns. The inner .modal-overlay .modal rule
+   (job-detail modal, 700px) was being overridden here but at only
+   760px which still pinched everything once perm badges + verbs +
+   descriptions had to render side-by-side. */
+.um-modal .modal,
+.um-modal > .modal,
+#user-modal.modal-overlay > .modal {
+    max-width: min(1180px, calc(100vw - 2rem)) !important;
+    width: calc(100vw - 2rem) !important;
+}
+
+/* The perms grid scroll area expands to fill the now-wider modal,
+   and module bodies render perm rows in a responsive 2-column grid
+   so a typical screen shows ~6 rows on screen at once instead of
+   half-words wrapped over many lines. */
+.um-modal .um-access-grid { max-height: 60vh; }
+.um-modal .um-module-body {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 0.35rem;
+}
+.um-modal .um-perm-row { min-width: 0; }
+.um-modal .um-perm-title { flex-wrap: wrap; }
+.um-modal .um-perm-desc {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* Sub-tabs above panel — recolour into light pill row */
+.um-modal .user-modal-tabs {
+  display: inline-flex; padding: 4px; gap: 4px;
+  background: #f1f5f9; border-radius: 10px; margin-bottom: 1rem;
+}
+.um-modal .user-modal-tabs > .user-modal-tab,
+.um-modal .user-modal-tab {
+  background: transparent !important; border: 0 !important;
+  padding: 0.5rem 1rem !important; border-radius: 7px !important;
+  font-size: 0.85rem !important; font-weight: 600 !important;
+  color: #64748b !important; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 0.4rem;
+}
+.um-modal .user-modal-tab:hover { color: #0f172a !important; }
+.um-modal .user-modal-tab.active {
+  background: #fff !important; color: #1B3A5C !important;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.06) !important;
 }

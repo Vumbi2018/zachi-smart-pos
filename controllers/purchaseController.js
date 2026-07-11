@@ -189,23 +189,19 @@ async function deletePO(req, res) {
         if (po.rows.length === 0) return res.status(404).json({ error: 'PO not found.' });
         if (po.rows[0].status !== 'Draft') return res.status(400).json({ error: 'Cannot delete a PO that is not in Draft status.' });
 
-        await pool.query('DELETE FROM purchase_orders WHERE po_id = $1', [req.params.id]); // Items cascade delete? Usually yes.
-        // Assuming ON DELETE CASCADE on po_items. If not, need to delete items first.
-        // Let's assume schema handles it or do it explicitly to be safe.
-        // Migration 004 has ON DELETE CASCADE for po_items? 
-        // Let's safe delete items just in case.
-        // Actually, explicit delete is safer if constraint is missing.
+        // po_items has ON DELETE CASCADE in migration 004, so deleting
+        // the parent PO removes its items in the same statement.
+        await pool.query('DELETE FROM purchase_orders WHERE po_id = $1', [req.params.id]);
 
         res.json({ message: 'PO deleted successfully.' });
     } catch (err) {
-        // If constraint error regarding items, then we know.
-        // Check if foreign key constraint fails.
-        if (err.code === '23503') { // foreign_key_violation
-            // Try deleting items first in transaction?
-            // But simpler to just catch and fail if not cascade.
-            // Let's wrap in transaction and delete items.
-            console.error('Delete PO error (likely constraints):', err);
-            res.status(500).json({ error: 'Could not delete PO. Ensure no related records exist.' });
+        if (err.code === '23503') {
+            // FK violation — surface a 409 so the UI can show a useful message
+            // instead of a generic 500.
+            console.error('Delete PO error (FK violation):', err);
+            res.status(409).json({
+                error: 'Could not delete PO. Ensure no related records exist.',
+            });
             return;
         }
         console.error('Delete PO error:', err);

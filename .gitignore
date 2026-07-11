@@ -1,13 +1,42 @@
+﻿# Dependencies
 node_modules/
+
+# Secrets â€” NEVER commit
 .env
+.env.*
+!.env.example
+
+# Logs
 *.log
 logs/
-uploads/
+pm2-error.log
+pm2-out.log
 server_startup_log.txt
 service_log.txt
-verify_payments.js
-extract_colors.ps1
-public/extract_colors.html
-scripts/debug-*.js
-IMG-20260213-WA0079.jpg
-Zachi\ Flyre.jpg
+startup_error.txt
+
+# Uploads & generated artifacts
+uploads/
+public/uploads/
+deploy.tar.gz
+
+# Local backups & ad-hoc helpers
+backups/
+*.bak
+*.tmp
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+public/release/*.tar.gz
+*.sql
+*.dump
+*.backup

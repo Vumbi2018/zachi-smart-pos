@@ -45,11 +45,11 @@ const CashDrawer = {
             actionBtn.textContent = '🔓 Open Cash Drawer';
             actionBtn.className = 'btn btn-primary';
             content.innerHTML = `
-                <div class="empty-state" style="padding:3rem">
+                <div class="empty-state" data-style="padding:3rem">
                     <div class="empty-state-icon">💰</div>
                     <h3>No Active Session</h3>
-                    <p style="max-width:400px;margin:0.5rem auto">Open a cash drawer session to start recording transactions. All sales will be tracked against the active session.</p>
-                    <button class="btn btn-primary" style="margin-top:1rem" onclick="CashDrawer.showOpenDrawerModal()">🔓 Open Cash Drawer</button>
+                    <p data-style="max-width:400px;margin:0.5rem auto">Open a cash drawer session to start recording transactions. All sales will be tracked against the active session.</p>
+                    <button class="btn btn-primary" data-style="margin-top:1rem" data-on-click="CashDrawer.showOpenDrawerModal()">🔓 Open Cash Drawer</button>
                 </div>
             `;
             return;
@@ -67,22 +67,22 @@ const CashDrawer = {
         content.innerHTML = `
             <!-- KPI Cards -->
             <div class="cash-kpi-grid">
-                <div class="cash-kpi" style="--kpi-color: linear-gradient(90deg, #1B3A5C, #2A6B8A)">
+                <div class="cash-kpi" data-style="--kpi-color: linear-gradient(90deg, #1B3A5C, #2A6B8A)">
                     <div class="cash-kpi-label">Opening Float</div>
                     <div class="cash-kpi-value">${Utils.currency(this.session.opening_float)}</div>
                     <div class="cash-kpi-sub">Set at ${new Date(this.session.opened_at).toLocaleTimeString()}</div>
                 </div>
-                <div class="cash-kpi" style="--kpi-color: linear-gradient(90deg, #10b981, #059669)">
+                <div class="cash-kpi" data-style="--kpi-color: linear-gradient(90deg, #10b981, #059669)">
                     <div class="cash-kpi-label">Expected Cash</div>
                     <div class="cash-kpi-value">${Utils.currency(this.session.expected_cash)}</div>
                     <div class="cash-kpi-sub">Float + In − Out</div>
                 </div>
-                <div class="cash-kpi" style="--kpi-color: linear-gradient(90deg, #2A6B8A, #34A77F)">
+                <div class="cash-kpi" data-style="--kpi-color: linear-gradient(90deg, #2A6B8A, #34A77F)">
                     <div class="cash-kpi-label">Session Duration</div>
-                    <div class="cash-kpi-value" style="font-size:1.2rem">${duration}</div>
+                    <div class="cash-kpi-value" data-style="font-size:1.2rem">${duration}</div>
                     <div class="cash-kpi-sub">Opened by ${this.session.opened_by_name}</div>
                 </div>
-                <div class="cash-kpi" style="--kpi-color: linear-gradient(90deg, #f59e0b, #d97706)">
+                <div class="cash-kpi" data-style="--kpi-color: linear-gradient(90deg, #f59e0b, #d97706)">
                     <div class="cash-kpi-label">Movements</div>
                     <div class="cash-kpi-value">${movements.length}</div>
                     <div class="cash-kpi-sub">${salesCount} sales</div>
@@ -91,17 +91,17 @@ const CashDrawer = {
 
             <!-- Quick Actions -->
             <div class="cash-actions-row">
-                <button class="btn btn-outline" onclick="CashDrawer.showPaidInModal()">💵 Paid In</button>
-                <button class="btn btn-outline" onclick="CashDrawer.showPaidOutModal()">💸 Paid Out</button>
+                <button class="btn btn-outline" data-on-click="CashDrawer.showPaidInModal()">💵 Paid In</button>
+                <button class="btn btn-outline" data-on-click="CashDrawer.showPaidOutModal()">💸 Paid Out</button>
             </div>
 
             <!-- Movement Log -->
             <div class="table-container">
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1rem; border-bottom:1px solid var(--border)">
-                    <h3 style="margin:0; font-size:0.95rem">Cash Movements</h3>
-                    <div style="display:flex; gap:0.5rem; font-size:0.78rem; color:var(--text-secondary)">
-                        <span>In: <strong style="color:var(--success)">${Utils.currency(paidIn)}</strong></span>
-                        <span>Out: <strong style="color:var(--danger)">${Utils.currency(paidOut)}</strong></span>
+                <div data-style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1rem; border-bottom:1px solid var(--border)">
+                    <h3 data-style="margin:0; font-size:0.95rem">Cash Movements</h3>
+                    <div data-style="display:flex; gap:0.5rem; font-size:0.78rem; color:var(--text-secondary)">
+                        <span>In: <strong data-style="color:var(--success)">${Utils.currency(paidIn)}</strong></span>
+                        <span>Out: <strong data-style="color:var(--danger)">${Utils.currency(paidOut)}</strong></span>
                     </div>
                 </div>
                 <table class="data-table">
@@ -113,7 +113,7 @@ const CashDrawer = {
                             <tr>
                                 <td>${new Date(m.created_at).toLocaleTimeString()}</td>
                                 <td><span class="movement-badge ${m.movement_type}">${this.formatMovementType(m.movement_type)}</span></td>
-                                <td style="font-weight:600; color:${['paid_out', 'refund'].includes(m.movement_type) ? 'var(--danger)' : 'var(--text-primary)'}">
+                                <td data-style="font-weight:600; color:${['paid_out', 'refund'].includes(m.movement_type) ? 'var(--danger)' : 'var(--text-primary)'}">
                                     ${['paid_out', 'refund'].includes(m.movement_type) ? '-' : '+'}${Utils.currency(m.amount)}
                                 </td>
                                 <td>${m.description || '—'}</td>
@@ -151,19 +151,19 @@ const CashDrawer = {
         Utils.showModal(`
             <div class="modal-header">
                 <h3>🔓 Open Cash Drawer</h3>
-                <button class="modal-close" onclick="Utils.closeModal()">✕</button>
+                <button class="modal-close" data-on-click="Utils.closeModal()">✕</button>
             </div>
             <div class="modal-body">
-                <p style="margin-bottom:1rem; color:var(--text-secondary); font-size:0.85rem">
+                <p data-style="margin-bottom:1rem; color:var(--text-secondary); font-size:0.85rem">
                     Enter the opening float amount — the cash in the drawer at the start of this shift. All sales and movements will be tracked against this session.
                 </p>
                 <div class="form-group">
                     <label>Opening Float (ZMW) *</label>
-                    <input type="number" id="open-float" class="form-input" step="0.01" min="0" value="500" style="font-size:1.5rem; font-weight:700; text-align:center" autofocus>
+                    <input type="number" id="open-float" class="form-input" step="0.01" min="0" value="500" data-style="font-size:1.5rem; font-weight:700; text-align:center" autofocus>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-outline" onclick="Utils.closeModal()">Cancel</button>
+                <button class="btn btn-outline" data-on-click="Utils.closeModal()">Cancel</button>
                 <button class="btn btn-primary" id="btn-confirm-open">Open Session</button>
             </div>
         `);
@@ -190,19 +190,19 @@ const CashDrawer = {
         Utils.showModal(`
             <div class="modal-header">
                 <h3>🔒 Close & Reconcile</h3>
-                <button class="modal-close" onclick="Utils.closeModal()">✕</button>
+                <button class="modal-close" data-on-click="Utils.closeModal()">✕</button>
             </div>
             <div class="modal-body">
-                <div style="text-align:center; margin-bottom:1.25rem; padding:1rem; background:#f0f4f8; border-radius:var(--radius-md)">
-                    <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:600">Expected Cash in Drawer</div>
-                    <div style="font-size:2rem; font-weight:800; color:var(--primary)">${Utils.currency(expected)}</div>
+                <div data-style="text-align:center; margin-bottom:1.25rem; padding:1rem; background:#f0f4f8; border-radius:var(--radius-md)">
+                    <div data-style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:600">Expected Cash in Drawer</div>
+                    <div data-style="font-size:2rem; font-weight:800; color:var(--primary)">${Utils.currency(expected)}</div>
                 </div>
                 <div class="form-group">
                     <label>Actual Cash Counted (ZMW) *</label>
-                    <input type="number" id="close-actual" class="form-input" step="0.01" min="0" value="${expected.toFixed(2)}" style="font-size:1.3rem; font-weight:700; text-align:center" oninput="CashDrawer.updateVariancePreview()">
+                    <input type="number" id="close-actual" class="form-input" step="0.01" min="0" value="${expected.toFixed(2)}" data-style="font-size:1.3rem; font-weight:700; text-align:center" data-on-input="CashDrawer.updateVariancePreview()">
                 </div>
-                <div id="variance-preview" style="margin-bottom:1rem"></div>
-                <div class="form-group" id="variance-reason-group" style="display:none">
+                <div id="variance-preview" data-style="margin-bottom:1rem"></div>
+                <div class="form-group" id="variance-reason-group" data-style="display:none">
                     <label>Variance Reason *</label>
                     <textarea id="close-variance-reason" class="form-input" rows="2" placeholder="Explain the variance..."></textarea>
                 </div>
@@ -212,7 +212,7 @@ const CashDrawer = {
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-outline" onclick="Utils.closeModal()">Cancel</button>
+                <button class="btn btn-outline" data-on-click="Utils.closeModal()">Cancel</button>
                 <button class="btn btn-danger" id="btn-confirm-close">Close Session</button>
             </div>
         `);
@@ -228,14 +228,14 @@ const CashDrawer = {
         const reasonGroup = document.getElementById('variance-reason-group');
 
         if (Math.abs(variance) < 0.01) {
-            preview.innerHTML = `<div style="text-align:center; color:var(--success); font-weight:700">✅ No variance — perfect match!</div>`;
+            preview.innerHTML = `<div data-style="text-align:center; color:var(--success); font-weight:700">✅ No variance — perfect match!</div>`;
             if (reasonGroup) reasonGroup.style.display = 'none';
         } else {
             const color = variance > 0 ? 'var(--success)' : 'var(--danger)';
             const label = variance > 0 ? 'OVER' : 'SHORT';
             preview.innerHTML = `
-                <div style="text-align:center; padding:0.5rem; background:${variance > 0 ? '#f0fdf4' : '#fef2f2'}; border-radius:var(--radius-sm); border:1px solid ${color}">
-                    <span style="font-weight:700; color:${color}; font-size:1.1rem">${label}: ${Utils.currency(Math.abs(variance))}</span>
+                <div data-style="text-align:center; padding:0.5rem; background:${variance > 0 ? '#f0fdf4' : '#fef2f2'}; border-radius:var(--radius-sm); border:1px solid ${color}">
+                    <span data-style="font-weight:700; color:${color}; font-size:1.1rem">${label}: ${Utils.currency(Math.abs(variance))}</span>
                 </div>
             `;
             if (reasonGroup) reasonGroup.style.display = 'block';
@@ -266,15 +266,15 @@ const CashDrawer = {
         Utils.showModal(`
             <div class="modal-header">
                 <h3>💵 Record Paid-In</h3>
-                <button class="modal-close" onclick="Utils.closeModal()">✕</button>
+                <button class="modal-close" data-on-click="Utils.closeModal()">✕</button>
             </div>
             <div class="modal-body">
-                <p style="margin-bottom:1rem; color:var(--text-secondary); font-size:0.85rem">
+                <p data-style="margin-bottom:1rem; color:var(--text-secondary); font-size:0.85rem">
                     Cash added to the drawer (e.g. float top-up, change from bank, petty cash deposit).
                 </p>
                 <div class="form-group">
                     <label>Amount (ZMW) *</label>
-                    <input type="number" id="pi-amount" class="form-input" step="0.01" min="0.01" style="font-size:1.2rem; font-weight:700; text-align:center" autofocus>
+                    <input type="number" id="pi-amount" class="form-input" step="0.01" min="0.01" data-style="font-size:1.2rem; font-weight:700; text-align:center" autofocus>
                 </div>
                 <div class="form-group">
                     <label>Description *</label>
@@ -282,7 +282,7 @@ const CashDrawer = {
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-outline" onclick="Utils.closeModal()">Cancel</button>
+                <button class="btn btn-outline" data-on-click="Utils.closeModal()">Cancel</button>
                 <button class="btn btn-primary" id="btn-confirm-pi">Record Paid-In</button>
             </div>
         `);
@@ -311,15 +311,15 @@ const CashDrawer = {
         Utils.showModal(`
             <div class="modal-header">
                 <h3>💸 Record Paid-Out</h3>
-                <button class="modal-close" onclick="Utils.closeModal()">✕</button>
+                <button class="modal-close" data-on-click="Utils.closeModal()">✕</button>
             </div>
             <div class="modal-body">
-                <p style="margin-bottom:1rem; color:var(--text-secondary); font-size:0.85rem">
+                <p data-style="margin-bottom:1rem; color:var(--text-secondary); font-size:0.85rem">
                     Cash removed from the drawer (e.g. change given, expense purchase, bank run).
                 </p>
                 <div class="form-group">
                     <label>Amount (ZMW) *</label>
-                    <input type="number" id="po-amount" class="form-input" step="0.01" min="0.01" style="font-size:1.2rem; font-weight:700; text-align:center" autofocus>
+                    <input type="number" id="po-amount" class="form-input" step="0.01" min="0.01" data-style="font-size:1.2rem; font-weight:700; text-align:center" autofocus>
                 </div>
                 <div class="form-group">
                     <label>Description *</label>
@@ -327,7 +327,7 @@ const CashDrawer = {
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-outline" onclick="Utils.closeModal()">Cancel</button>
+                <button class="btn btn-outline" data-on-click="Utils.closeModal()">Cancel</button>
                 <button class="btn btn-primary" id="btn-confirm-po">Record Paid-Out</button>
             </div>
         `);
@@ -358,17 +358,17 @@ const CashDrawer = {
             Utils.showModal(`
                 <div class="modal-header">
                     <h3>📊 Session History</h3>
-                    <button class="modal-close" onclick="Utils.closeModal()">✕</button>
+                    <button class="modal-close" data-on-click="Utils.closeModal()">✕</button>
                 </div>
-                <div class="modal-body" style="max-height:60vh; overflow-y:auto">
+                <div class="modal-body" data-style="max-height:60vh; overflow-y:auto">
                     ${sessions.length ? sessions.map(s => {
                 const variance = parseFloat(s.variance) || 0;
                 const varClass = Math.abs(variance) < 0.01 ? '' : variance > 0 ? 'variance-positive' : 'variance-negative';
                 return `
-                            <div class="session-card" onclick="CashDrawer.showSessionDetail(${s.session_id})">
+                            <div class="session-card" data-on-click="CashDrawer.showSessionDetail(${s.session_id})">
                                 <div class="session-card-header">
                                     <span class="session-card-date">${new Date(s.opened_at).toLocaleDateString('en-ZM', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</span>
-                                    <span class="badge" style="background:${s.status === 'Open' ? '#10b981' : '#6b7280'}; color:white">${s.status}</span>
+                                    <span class="badge" data-style="background:${s.status === 'Open' ? '#10b981' : '#6b7280'}; color:white">${s.status}</span>
                                 </div>
                                 <div class="session-card-cashier">Opened by ${s.opened_by_name}${s.closed_by_name ? ' · Closed by ' + s.closed_by_name : ''}</div>
                                 <div class="session-card-stats">
@@ -396,17 +396,17 @@ const CashDrawer = {
             Utils.showModal(`
                 <div class="modal-header">
                     <h3>Session — ${new Date(session.opened_at).toLocaleDateString()}</h3>
-                    <button class="modal-close" onclick="Utils.closeModal()">✕</button>
+                    <button class="modal-close" data-on-click="Utils.closeModal()">✕</button>
                 </div>
-                <div class="modal-body" style="max-height:65vh; overflow-y:auto">
-                    <div class="job-info-grid" style="margin-bottom:1rem">
+                <div class="modal-body" data-style="max-height:65vh; overflow-y:auto">
+                    <div class="job-info-grid" data-style="margin-bottom:1rem">
                         <div class="info-block"><label>Opened</label><span>${new Date(session.opened_at).toLocaleString()}</span></div>
                         <div class="info-block"><label>Closed</label><span>${session.closed_at ? new Date(session.closed_at).toLocaleString() : 'Still open'}</span></div>
                         <div class="info-block"><label>Opened By</label><span>${session.opened_by_name}</span></div>
                         <div class="info-block"><label>Closed By</label><span>${session.closed_by_name || '—'}</span></div>
                     </div>
 
-                    <div class="job-finance-grid" style="margin-bottom:1rem">
+                    <div class="job-finance-grid" data-style="margin-bottom:1rem">
                         <div class="finance-item"><label>Float</label><span>${Utils.currency(session.opening_float)}</span></div>
                         <div class="finance-item"><label>Expected</label><span>${Utils.currency(session.expected_cash)}</span></div>
                         <div class="finance-item"><label>Actual</label><span>${session.actual_cash != null ? Utils.currency(session.actual_cash) : '—'}</span></div>
@@ -416,9 +416,9 @@ const CashDrawer = {
                         </div>
                     </div>
 
-                    ${session.variance_reason ? `<p style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:1rem"><strong>Variance reason:</strong> ${session.variance_reason}</p>` : ''}
+                    ${session.variance_reason ? `<p data-style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:1rem"><strong>Variance reason:</strong> ${session.variance_reason}</p>` : ''}
 
-                    <h4 style="font-size:0.85rem; margin-bottom:0.5rem">Movements (${movements.length})</h4>
+                    <h4 data-style="font-size:0.85rem; margin-bottom:0.5rem">Movements (${movements.length})</h4>
                     <table class="data-table data-table-compact">
                         <thead><tr><th>Time</th><th>Type</th><th>Amount</th><th>Description</th><th>By</th></tr></thead>
                         <tbody>
@@ -426,7 +426,7 @@ const CashDrawer = {
                                 <tr>
                                     <td>${new Date(m.created_at).toLocaleTimeString()}</td>
                                     <td><span class="movement-badge ${m.movement_type}">${this.formatMovementType(m.movement_type)}</span></td>
-                                    <td style="font-weight:600">${Utils.currency(m.amount)}</td>
+                                    <td data-style="font-weight:600">${Utils.currency(m.amount)}</td>
                                     <td>${m.description || '—'}</td>
                                     <td>${m.performed_by_name || '—'}</td>
                                 </tr>
@@ -435,8 +435,8 @@ const CashDrawer = {
                     </table>
                 </div>
                 <div class="modal-footer">
-                    ${session.status === 'Closed' ? `<button class="btn btn-outline" onclick="CashDrawer.showEodReport(${id})">📄 EOD Report</button>` : ''}
-                    <button class="btn btn-outline" onclick="CashDrawer.showHistory()">← Back</button>
+                    ${session.status === 'Closed' ? `<button class="btn btn-outline" data-on-click="CashDrawer.showEodReport(${id})">📄 EOD Report</button>` : ''}
+                    <button class="btn btn-outline" data-on-click="CashDrawer.showHistory()">← Back</button>
                 </div>
             `);
         } catch (err) {
@@ -457,13 +457,13 @@ const CashDrawer = {
             Utils.showModal(`
                 <div class="modal-header">
                     <h3>📄 End of Day Report</h3>
-                    <button class="modal-close" onclick="Utils.closeModal()">✕</button>
+                    <button class="modal-close" data-on-click="Utils.closeModal()">✕</button>
                 </div>
                 <div class="modal-body eod-report" id="eod-report-content">
-                    <div style="text-align:center; margin-bottom:1.25rem">
-                        <h2 style="margin:0; font-size:1.1rem">ZACHI SMART-POS</h2>
-                        <div style="font-size:0.78rem; color:var(--text-secondary)">Cash Reconciliation Report</div>
-                        <div style="font-size:0.82rem; color:var(--text-primary); font-weight:600; margin-top:0.25rem">
+                    <div data-style="text-align:center; margin-bottom:1.25rem">
+                        <h2 data-style="margin:0; font-size:1.1rem">ZACHI SMART-POS</h2>
+                        <div data-style="font-size:0.78rem; color:var(--text-secondary)">Cash Reconciliation Report</div>
+                        <div data-style="font-size:0.82rem; color:var(--text-primary); font-weight:600; margin-top:0.25rem">
                             ${new Date(report.session.opened_at).toLocaleDateString('en-ZM', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         </div>
                     </div>
@@ -488,10 +488,10 @@ const CashDrawer = {
                     <div class="eod-section">
                         <div class="eod-section-header">Cash Flow</div>
                         <div class="eod-row"><span>Opening Float</span><span>${Utils.currency(s.opening_float)}</span></div>
-                        <div class="eod-row" style="color:var(--success)"><span>+ Cash Sales</span><span>${Utils.currency(s.total_sales_cash)}</span></div>
-                        <div class="eod-row" style="color:var(--success)"><span>+ Paid In</span><span>${Utils.currency(s.total_paid_in)}</span></div>
-                        <div class="eod-row" style="color:var(--danger)"><span>− Paid Out</span><span>${Utils.currency(s.total_paid_out)}</span></div>
-                        <div class="eod-row" style="color:var(--danger)"><span>− Refunds</span><span>${Utils.currency(s.total_refunds)}</span></div>
+                        <div class="eod-row" data-style="color:var(--success)"><span>+ Cash Sales</span><span>${Utils.currency(s.total_sales_cash)}</span></div>
+                        <div class="eod-row" data-style="color:var(--success)"><span>+ Paid In</span><span>${Utils.currency(s.total_paid_in)}</span></div>
+                        <div class="eod-row" data-style="color:var(--danger)"><span>− Paid Out</span><span>${Utils.currency(s.total_paid_out)}</span></div>
+                        <div class="eod-row" data-style="color:var(--danger)"><span>− Refunds</span><span>${Utils.currency(s.total_refunds)}</span></div>
                         <div class="eod-row eod-total"><span>Expected Cash</span><span>${Utils.currency(s.expected_cash)}</span></div>
                     </div>
 
@@ -500,16 +500,16 @@ const CashDrawer = {
                         <div class="eod-section-header">Reconciliation</div>
                         <div class="eod-row"><span>Expected Cash</span><span>${Utils.currency(s.expected_cash)}</span></div>
                         <div class="eod-row"><span>Actual Cash</span><span>${Utils.currency(s.actual_cash)}</span></div>
-                        <div class="eod-row eod-total" style="color:${varColor}">
+                        <div class="eod-row eod-total" data-style="color:${varColor}">
                             <span>Variance ${varLabel}</span>
                             <span>${(variance >= 0 ? '+' : '')}${Utils.currency(variance)}</span>
                         </div>
-                        ${s.variance_reason ? `<div class="eod-row"><span>Reason</span><span style="font-style:italic">${s.variance_reason}</span></div>` : ''}
+                        ${s.variance_reason ? `<div class="eod-row"><span>Reason</span><span data-style="font-style:italic">${s.variance_reason}</span></div>` : ''}
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-outline" onclick="CashDrawer.printEod()">🖨️ Print</button>
-                    <button class="btn btn-outline" onclick="CashDrawer.showSessionDetail(${id})">← Back</button>
+                    <button class="btn btn-outline" data-on-click="CashDrawer.printEod()">🖨️ Print</button>
+                    <button class="btn btn-outline" data-on-click="CashDrawer.showSessionDetail(${id})">← Back</button>
                 </div>
             `);
         } catch (err) {
@@ -521,19 +521,17 @@ const CashDrawer = {
         const content = document.getElementById('eod-report-content');
         if (!content) return;
         const w = window.open('', '_blank');
+        // Stylesheet loaded externally so the print window does not need
+        // style-src 'unsafe-inline' (Task #7).
         w.document.write(`
             <html><head><title>EOD Report</title>
-            <style>
-                body { font-family: 'Inter', 'Segoe UI', sans-serif; max-width:500px; margin:0 auto; padding:1rem; }
-                .eod-section { border:1px solid #ddd; border-radius:6px; margin-bottom:0.75rem; overflow:hidden; }
-                .eod-section-header { background:#f5f5f5; padding:0.5rem 0.75rem; font-weight:700; font-size:0.85rem; border-bottom:1px solid #ddd; }
-                .eod-row { display:flex; justify-content:space-between; padding:0.35rem 0.75rem; font-size:0.82rem; border-bottom:1px solid #f0f0f0; }
-                .eod-row:last-child { border-bottom:none; }
-                .eod-row.eod-total { font-weight:800; background:#f5f5f5; }
-                h2 { margin:0; text-align:center; }
-            </style></head><body>${content.innerHTML}</body></html>
+            <link rel="stylesheet" href="${location.origin}/css/print-eod.css">
+            </head><body>${content.innerHTML}</body></html>
         `);
         w.document.close();
         w.print();
     }
 };
+
+// Expose to global scope for delegated event handlers (data-on-* attributes).
+window.CashDrawer = CashDrawer;

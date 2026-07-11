@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zachi POS — Customer Display</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(135deg, #1B3A5C 0%, #0d2240 100%);
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+    }
+    .screen {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+    header {
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    header .brand { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.5px; }
+    header .clock { font-size: 1.1rem; opacity: 0.8; font-variant-numeric: tabular-nums; }
+    header .conn-dot {
+      display: inline-block; width: 10px; height: 10px;
+      border-radius: 50%; background: #22c55e; margin-right: 8px;
+      box-shadow: 0 0 8px #22c55e;
+    }
+    header .conn-dot.off { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+
+    main { flex: 1; display: flex; min-height: 0; }
+    .cart {
+      flex: 2;
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+    }
+    .cart h2 { font-size: 0.95rem; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1rem; }
+    .cart-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .cart-item {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 1rem;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
+      animation: slideIn 0.2s ease-out;
+      font-size: 1.15rem;
+    }
+    .cart-item .name { font-weight: 500; }
+    .cart-item .qty { opacity: 0.7; font-variant-numeric: tabular-nums; }
+    .cart-item .line-total { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 100px; text-align: right; }
+    .cart-empty {
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      height: 100%; text-align: center; opacity: 0.5;
+    }
+    .cart-empty .logo { font-size: 5rem; margin-bottom: 1rem; }
+    .cart-empty h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .cart-empty p { font-size: 1.2rem; opacity: 0.8; }
+
+    .summary {
+      flex: 1;
+      background: rgba(0,0,0,0.25);
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-width: 320px;
+      max-width: 420px;
+    }
+    .summary .row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1.1rem;
+      padding: 0.4rem 0;
+      opacity: 0.85;
+      font-variant-numeric: tabular-nums;
+    }
+    .summary .row.total {
+      border-top: 2px solid rgba(255,255,255,0.2);
+      margin-top: 1rem;
+      padding-top: 1rem;
+      font-size: 2.6rem;
+      font-weight: 700;
+      opacity: 1;
+    }
+    .summary .cashier { font-size: 0.9rem; opacity: 0.6; margin-top: auto; padding-top: 1rem; }
+    .summary .customer { font-size: 1.05rem; opacity: 0.9; margin-bottom: 1rem; padding: 0.6rem 1rem; background: rgba(255,255,255,0.06); border-radius: 8px; }
+
+    /* Thanks overlay */
+    .thanks {
+      position: fixed; inset: 0;
+      background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      animation: fadeIn 0.3s;
+      z-index: 100;
+    }
+    .thanks .check { font-size: 8rem; margin-bottom: 1rem; }
+    .thanks h1 { font-size: 4rem; font-weight: 800; margin-bottom: 1rem; }
+    .thanks .change { font-size: 2rem; opacity: 0.95; }
+    .thanks .change strong { font-size: 3.5rem; display: block; margin-top: 0.5rem; font-variant-numeric: tabular-nums; }
+
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+    @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="screen">
+    <header>
+      <div class="brand">🏪 Zachi Computer Centre</div>
+      <div class="clock">
+        <span class="conn-dot" id="conn-dot" title="Connected"></span>
+        <span id="clock"></span>
+      </div>
+    </header>
+    <main>
+      <section class="cart">
+        <div id="cart-view-empty" class="cart-empty">
+          <div class="logo">👋</div>
+          <h1>Welcome</h1>
+          <p>Please wait while we prepare your order…</p>
+        </div>
+        <div id="cart-view-active" class="hidden">
+          <h2>Your Order</h2>
+          <div class="cart-list" id="cart-list"></div>
+        </div>
+      </section>
+      <aside class="summary" id="summary" style="display:none;">
+        <div>
+          <div class="customer hidden" id="cust-line"></div>
+          <div class="row"><span>Subtotal</span><span id="sum-subtotal">0.00</span></div>
+          <div class="row"><span>Discount</span><span id="sum-discount">0.00</span></div>
+          <div class="row"><span>Tax</span><span id="sum-tax">0.00</span></div>
+          <div class="row total"><span>Total</span><span id="sum-total">0.00</span></div>
+        </div>
+        <div class="cashier" id="cashier-line"></div>
+      </aside>
+    </main>
+  </div>
+
+  <div class="thanks hidden" id="thanks">
+    <div class="check">✓</div>
+    <h1>Thank You!</h1>
+    <div class="change" id="thanks-change"></div>
+  </div>
+
+<script src="/js/display.js"></script>
+</body>
+</html>

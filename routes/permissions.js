@@ -3,6 +3,7 @@ const router = express.Router();
 const PermissionController = require('../controllers/permissionController');
 const authenticateToken = require('../middleware/auth');
 const authorize = require('../middleware/rbac');
+const idempotency = require('../middleware/idempotency');
 
 // All routes require Director access
 router.use(authenticateToken);
@@ -15,6 +16,6 @@ router.get('/', PermissionController.getAllPermissions);
 router.get('/matrix', PermissionController.getRolePermissions);
 
 // Update permissions for a specific role
-router.put('/role/:role', PermissionController.updateRolePermissions);
+router.put('/role/:role', idempotency(), PermissionController.updateRolePermissions);
 
 module.exports = router;

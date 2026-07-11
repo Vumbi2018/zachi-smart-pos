@@ -1,0 +1,11 @@
+/* Advanced reports — print window stylesheet (reports_adv.js).
+   Loaded externally so the print window does not need style-src 'unsafe-inline'. */
+body { font-family: sans-serif; padding: 24px; color: #1e293b; }
+h1 { color: #1B3A5C; font-size: 1.4rem; }
+table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+th { background: #1B3A5C; color: #fff; padding: 7px 10px; text-align: left; font-size: 0.8rem; }
+td { padding: 6px 10px; border-bottom: 1px solid #e2e8f0; font-size: 0.8rem; }
+tr:nth-child(even) td { background: #f8fafc; }
+.report-premium-card { border: 1px solid #e2e8f0; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+.report-period { color: #64748b; margin-top: 0; }
+@media print { body { margin: 0; } }
