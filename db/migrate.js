@@ -1,4 +1,4 @@
-﻿const fs = require('fs');
+const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const pool = require('./pool');
@@ -101,7 +101,7 @@ function splitSqlStatements(sql) {
                 i += fullTag.length;
                 const end = sql.indexOf(fullTag, i);
                 if (end === -1) {
-                    // Unterminated dollar quote â€” append the rest verbatim
+                    // Unterminated dollar quote - append the rest verbatim
                     buf += sql.slice(i);
                     i = n;
                 } else {
@@ -161,7 +161,7 @@ async function getExecutedMigrations() {
 }
 
 async function migrate() {
-    console.log('ðŸ”„ Checking database migrations...\n');
+    console.log('[migrate] Checking database migrations...\n');
     await ensureMigrationsTable();
     await applyRenameShim();
     const executed = await getExecutedMigrations();
@@ -193,13 +193,17 @@ async function migrate() {
                 const aliases = RECOVERED_CHECKSUM_ALIASES[file];
                 if (aliases && aliases.has(stored)) {
                     console.warn(
-                        `  ⚠️  ${file} matches a recovered historical checksum; ` +
-                            'continuing with recreated migration file.'
+                        `  [warn] ${file} matches a trusted recovered historical checksum; ` +
+                            'normalizing to the current migration checksum.'
+                    );
+                    await pool.query(
+                        'UPDATE migrations SET checksum = $1 WHERE name = $2',
+                        [checksum, file]
                     );
                     continue;
                 }
                 console.error(
-                    `\nâŒ Migration checksum mismatch for ${file}.\n` +
+                    `\n[error] Migration checksum mismatch for ${file}.\n` +
                         `   Stored:   ${stored}\n` +
                         `   On disk:  ${checksum}\n` +
                         `   Applied migrations are immutable. Restore the original file or\n` +
@@ -210,7 +214,7 @@ async function migrate() {
             continue;
         }
 
-        console.log(`  ðŸš€ Executing ${file}...`);
+        console.log(`  [run] Executing ${file}...`);
 
         const statements = splitSqlStatements(sql);
         const client = await pool.connect();
@@ -224,11 +228,11 @@ async function migrate() {
                 [file, checksum]
             );
             await client.query('COMMIT');
-            console.log(`  âœ… ${file} applied successfully (${statements.length} stmts).`);
+            console.log(`  [ok] ${file} applied successfully (${statements.length} stmts).`);
             ranAny = true;
         } catch (err) {
             await client.query('ROLLBACK').catch(() => {});
-            console.error(`  âŒ ${file} failed: ${err.message}`);
+            console.error(`  [error] ${file} failed: ${err.message}`);
             client.release();
             process.exit(1);
         } finally {
@@ -236,12 +240,12 @@ async function migrate() {
         }
     }
 
-    if (!ranAny) console.log('  âœ¨ No new migrations to apply.');
-    else console.log('\nâœ… Migrations up to date.');
+    if (!ranAny) console.log('  [ok] No new migrations to apply.');
+    else console.log('\n[ok] Migrations up to date.');
 }
 
 async function seed() {
-    console.log('\nðŸŒ± Running seed data...\n');
+    console.log('\n[seed] Running seed data...\n');
 
     const seedsDir = path.join(__dirname, 'seeds');
     if (!fs.existsSync(seedsDir)) {
@@ -254,19 +258,19 @@ async function seed() {
         .sort();
 
     for (const file of files) {
-        console.log(`  ðŸŒ± Seeding ${file}...`);
+        console.log(`  [seed] Seeding ${file}...`);
         const filePath = path.join(seedsDir, file);
         const sql = fs.readFileSync(filePath, 'utf-8');
         try {
             await pool.query(sql);
-            console.log(`  âœ… ${file}`);
+            console.log(`  [ok] ${file}`);
         } catch (err) {
-            console.error(`  âŒ ${file}: ${err.message}`);
-            // Don't exit on seed error â€” rows may already exist (idempotent seeds).
+            console.error(`  [error] ${file}: ${err.message}`);
+            // Don't exit on seed error - rows may already exist (idempotent seeds).
         }
     }
 
-    console.log('\nâœ… Seed data process finished.');
+    console.log('\n[ok] Seed data process finished.');
 }
 
 async function run() {
@@ -277,10 +281,10 @@ async function run() {
             await seed();
         } else if (command === 'fresh') {
             if (process.env.NODE_ENV === 'production') {
-                console.error('âŒ Refusing to run "fresh" in production.');
+                console.error('[error] Refusing to run "fresh" in production.');
                 process.exit(1);
             }
-            console.log('ðŸ—‘ï¸  Dropping all tables...');
+            console.log('[fresh] Dropping all tables...');
             await pool.query(`
                 DROP TABLE IF EXISTS migrations CASCADE;
                 DROP VIEW IF EXISTS v_daily_profit CASCADE;
@@ -297,7 +301,7 @@ async function run() {
                 DROP TABLE IF EXISTS password_reset_tokens CASCADE;
                 DROP TABLE IF EXISTS users CASCADE;
             `);
-            console.log('  âœ… All tables dropped.\n');
+            console.log('  [ok] All tables dropped.\n');
             await migrate();
             await seed();
         } else {
