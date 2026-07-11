@@ -131,12 +131,29 @@ fi
 echo "==> Running migrations"
 npm run migrate
 
+check_port_available() {
+  local port="${1:-5000}"
+  local listeners=""
+  listeners="$(ss -ltnp "sport = :$port" 2>/dev/null || true)"
+  if echo "$listeners" | grep -q LISTEN; then
+    echo "Port $port is already in use after stopping $PM2_APP:"
+    echo "$listeners"
+    echo "Stop the conflicting service, or set another PORT in $APP_DIR/.env and update nginx proxy_pass."
+    exit 1
+  fi
+}
+
 echo "==> Restarting PM2"
+APP_PORT="${PORT:-5000}"
 if pm2 describe "$PM2_APP" >/dev/null 2>&1; then
-  pm2 reload "$PM2_APP" --update-env
-else
-  pm2 start ecosystem.config.js --env production
+  pm2 stop "$PM2_APP" || true
 fi
+sleep 1
+check_port_available "$APP_PORT"
+if pm2 describe "$PM2_APP" >/dev/null 2>&1; then
+  pm2 delete "$PM2_APP" || true
+fi
+pm2 start ecosystem.config.js --env production
 pm2 save
 
 echo "==> Health check"
