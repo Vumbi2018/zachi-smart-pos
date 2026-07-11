@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-
+trap 'echo "Deployment failed at line $LINENO while running: $BASH_COMMAND" >&2' ERR
 APP_DIR="${APP_DIR:-/var/www/zachipos}"
 REPO_URL="${REPO_URL:-https://github.com/Vumbi2018/zachi-smart-pos.git}"
 BRANCH="${BRANCH:-main}"
