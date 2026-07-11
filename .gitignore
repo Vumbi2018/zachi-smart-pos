@@ -1,7 +1,7 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 
-# Secrets â€” NEVER commit
+# Secrets — NEVER commit
 .env
 .env.*
 !.env.example
@@ -38,5 +38,7 @@ Thumbs.db
 
 public/release/*.tar.gz
 *.sql
+!db/migrations/*.sql
+!db/seeds/*.sql
 *.dump
 *.backup
