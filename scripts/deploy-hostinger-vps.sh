@@ -52,6 +52,9 @@ fi
 
 echo "==> Updating source from GitHub"
 if [[ -d "$APP_DIR/.git" ]]; then
+  git config --global --add safe.directory "$APP_DIR" || true
+fi
+if [[ -d "$APP_DIR/.git" ]]; then
   git -C "$APP_DIR" fetch origin "$BRANCH"
   git -C "$APP_DIR" checkout "$BRANCH"
   git -C "$APP_DIR" reset --hard "origin/$BRANCH"
